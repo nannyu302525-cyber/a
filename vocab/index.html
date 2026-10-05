@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="単語帳">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>わたしの単語帳</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#1d1f24; --sub:#6b6f78; --line:#e4e1d8;
+    --accent:#2f6fde; --accent-ink:#ffffff; --hit:#fff3c4; --danger:#c8402f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#16181d; --card:#1f2229; --ink:#e9eaee; --sub:#9aa0ab; --line:#2e323b;
+      --accent:#6a9cff; --accent-ink:#0f1115; --hit:#4a3f12; --danger:#ff7a68;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    line-height:1.5;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 14px;}
+  h1{font-size:1.25rem;font-weight:700;letter-spacing:.04em;}
+  #count{font-size:.8rem;color:var(--sub);}
+
+  /* ---- 入力カード ---- */
+  .add{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;}
+  .add .row{display:flex;gap:8px;}
+  .add input{flex:1;min-width:0;}
+  input,textarea{
+    font:inherit;font-size:16px;color:var(--ink);background:var(--bg);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;
+  }
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;}
+  #fWord{font-weight:600;margin-bottom:8px;}
+  button{font:inherit;cursor:pointer;border:none;border-radius:10px;}
+  .primary{background:var(--accent);color:var(--accent-ink);font-weight:700;padding:10px 18px;white-space:nowrap;}
+  .primary:disabled{opacity:.4;cursor:default;}
+  .ghost{background:transparent;color:var(--sub);border:1px solid var(--line);padding:8px 12px;font-size:.85rem;}
+  .ghost:hover{color:var(--ink);}
+  .ghost.on{color:var(--accent);border-color:var(--accent);}
+  #exists{font-size:.82rem;margin-top:8px;min-height:0;}
+  #exists:empty{display:none;}
+  #exists .tag{display:inline-block;font-size:.7rem;font-weight:700;color:var(--accent-ink);background:var(--accent);
+    border-radius:6px;padding:1px 6px;margin-right:6px;vertical-align:1px;}
+  .hint{font-size:.75rem;color:var(--sub);margin-top:8px;}
+  #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:.85rem;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---- 検索と表示切替 ---- */
+  .tools{display:flex;gap:8px;align-items:center;margin:18px 0 0;flex-wrap:wrap;}
+  .tools #q{flex:1 1 200px;}
+  .seg{display:flex;gap:6px;}
+
+  /* ---- A–Z ジャンプ ---- */
+  #az{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;
+    padding:10px 0 8px;border-bottom:1px solid var(--line);margin-top:10px;}
+  #az::-webkit-scrollbar{display:none;}
+  #az[hidden]{display:none;}
+  #az a{flex:0 0 auto;min-width:28px;text-align:center;font-size:.8rem;font-weight:700;padding:3px 0;
+    color:var(--accent);text-decoration:none;border-radius:6px;}
+  #az a.off{color:var(--line);pointer-events:none;}
+  #az a:hover{background:var(--card);}
+
+  /* ---- 一覧 ---- */
+  .group h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:14px 4px 4px;scroll-margin-top:52px;}
+  .item{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left;background:var(--card);color:var(--ink);
+    border:1px solid var(--line);border-radius:0;padding:10px 12px;margin-top:-1px;}
+  .group .item:nth-of-type(1){border-radius:12px 12px 0 0;}
+  .group .item:last-child{border-radius:0 0 12px 12px;}
+  .group .item:only-of-type{border-radius:12px;}
+  .item .w{flex:0 0 42%;font-weight:600;word-break:break-word;}
+  .item .m{flex:1;color:var(--ink);word-break:break-word;}
+  .item .m.hid{color:transparent;background:var(--line);border-radius:6px;user-select:none;}
+  .item.flash{animation:flash 1.6s ease-out;}
+  @keyframes flash{from{background:var(--hit);}to{background:var(--card);}}
+  mark{background:var(--hit);color:inherit;border-radius:3px;}
+  #empty{color:var(--sub);text-align:center;padding:40px 0;font-size:.9rem;}
+  @media (max-width:420px){ .item{flex-direction:column;gap:2px;} .item .w{flex:none;} }
+
+  .menu{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:28px;}
+
+  /* ---- ダイアログ ---- */
+  dialog{margin:auto;border:none;border-radius:16px;background:var(--card);color:var(--ink);
+    width:min(520px,calc(100% - 32px));padding:18px;}
+  dialog::backdrop{background:rgba(0,0,0,.45);}
+  dialog h3{font-size:1rem;margin-bottom:12px;}
+  dialog label{display:block;font-size:.78rem;color:var(--sub);margin:10px 0 4px;}
+  dialog .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+  dialog .acts .del{margin-right:auto;color:var(--danger);border-color:var(--danger);}
+  #bulkText{min-height:200px;resize:vertical;font-size:14px;}
+  #bulkPrev{font-size:.8rem;color:var(--sub);margin-top:8px;max-height:140px;overflow:auto;}
+  #bulkPrev b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>わたしの単語帳</h1>
+    <span id="count"></span>
+  </header>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
+    <div class="row">
+      <input id="fMean" placeholder="意味(例: 有能)" enterkeyhint="done" aria-label="意味">
+      <button class="primary" id="addBtn" type="submit" disabled>追加</button>
+    </div>
+    <div id="exists" aria-live="polite"></div>
+    <p class="hint">「Competent…有能」のように1行で入力してもOK。英語欄で Enter を押すと意味欄に移ります。</p>
+  </form>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="検索(英語・日本語どちらでも)" aria-label="検索">
+    <div class="seg">
+      <button class="ghost on" id="sortAbc" type="button">ABC順</button>
+      <button class="ghost" id="sortNew" type="button">新しい順</button>
+      <button class="ghost" id="hideBtn" type="button" title="意味をかくして復習">意味をかくす</button>
+    </div>
+  </div>
+
+  <nav id="az" aria-label="頭文字へジャンプ"></nav>
+  <div id="list"></div>
+  <p id="empty" hidden></p>
+
+  <div class="menu">
+    <button class="ghost" id="bulkOpen" type="button">まとめて貼り付け</button>
+    <button class="ghost" id="exportBtn" type="button">バックアップを保存</button>
+    <button class="ghost" id="importBtn" type="button">バックアップを読み込み</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+</div>
+
+<dialog id="editDlg">
+  <form method="dialog" id="editForm">
+    <h3>編集</h3>
+    <label for="eWord">英語</label>
+    <input id="eWord" autocapitalize="off" spellcheck="false">
+    <label for="eMean">意味</label>
+    <textarea id="eMean" rows="3"></textarea>
+    <div class="acts">
+      <button class="ghost del" id="delBtn" type="button">削除</button>
+      <button class="ghost" value="cancel" formnovalidate>キャンセル</button>
+      <button class="primary" id="saveBtn" value="save">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="bulkDlg">
+  <form method="dialog">
+    <h3>まとめて貼り付け</h3>
+    <p class="hint" style="margin-top:0">1行に1語。「英語…意味」「英語:意味」「英語→意味」「英語(タブ)意味」の形式を読み取ります。登録済みの単語は意味が追記されます。</p>
+    <textarea id="bulkText" placeholder="Competent…有能&#10;Exclusively…限定≒only"></textarea>
+    <div id="bulkPrev"></div>
+    <div class="acts">
+      <button class="ghost" value="cancel">キャンセル</button>
+      <button class="primary" id="bulkAdd" value="add" disabled>追加</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script>
+/* ================= 保存 ================= */
+const KEY='vocab-book-v1';
+let words=[];
+let storageOK=true;
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw===null){ words=seed(); save(); return; }
+    words=JSON.parse(raw)||[];
+  }catch(e){ storageOK=false; words=seed(); }
+}
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(words)); storageOK=true; }
+  catch(e){ storageOK=false; toast('この端末に保存できませんでした'); }
+}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ================= 並び替え・グループ ================= */
+const norm=s=>s.trim().toLowerCase();
+function sortKey(w){ return w.toLowerCase().replace(/^[^a-z0-9]+/,''); }
+function letterOf(w){ const c=sortKey(w).charAt(0); return /[a-z]/.test(c)?c.toUpperCase():'#'; }
+const cmp=(a,b)=>sortKey(a.word).localeCompare(sortKey(b.word),'en',{sensitivity:'base',numeric:true});
+
+function findWord(w){ const n=norm(w); return words.find(x=>norm(x.word)===n); }
+
+/* 同じ単語があれば意味を追記、なければ新規。結果の項目を返す */
+function upsert(word,meaning){
+  word=word.trim(); meaning=meaning.trim();
+  const ex=findWord(word);
+  if(ex){
+    if(meaning && !ex.meaning.split(' / ').includes(meaning)){
+      ex.meaning=ex.meaning?ex.meaning+' / '+meaning:meaning;
+    }
+    return {item:ex,merged:true};
+  }
+  const item={id:uid(),word,meaning,added:Date.now()};
+  words.push(item);
+  return {item,merged:false};
+}
+
+/* ================= 1行の読み取り ================= */
+const SEP=/\s*(?:…|\.{3}|\t|：|:|→|＝|=)\s*/;
+function splitLine(line){
+  const m=line.match(SEP);
+  if(!m) return null;
+  return {word:line.slice(0,m.index).trim(), meaning:line.slice(m.index+m[0].length).trim()};
+}
+function parseBulk(text){
+  const out=[];
+  for(const raw of text.split(/\r?\n/)){
+    const line=raw.trim();
+    if(!line) continue;
+    const p=splitLine(line);
+    if(p && p.word){ out.push(p); continue; }
+    // 「→…」「(…」のように区切りや括弧で始まる行は、前の単語の意味の続きとして扱う
+    if(out.length && (p || /^[「（(〜・※]/.test(line))){
+      out[out.length-1].meaning+=' '+line;
+    }else{
+      out.push({word:line, meaning:''});
+    }
+  }
+  return out;
+}
+
+/* ================= 描画 ================= */
+const $=id=>document.getElementById(id);
+let sortMode='abc', hideMeaning=false, revealed=new Set();
+
+function esc(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function hl(text,q){
+  if(!q) return esc(text);
+  const i=text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return esc(text);
+  return esc(text.slice(0,i))+'<mark>'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+}
+
+function render(){
+  const q=$('q').value.trim();
+  const ql=q.toLowerCase();
+  let shown=q?words.filter(w=>w.word.toLowerCase().includes(ql)||w.meaning.toLowerCase().includes(ql)):words.slice();
+  $('count').textContent=words.length+'語';
+
+  const list=$('list'); list.innerHTML='';
+  const az=$('az');
+  $('empty').hidden=shown.length>0;
+  $('empty').textContent=words.length?'「'+q+'」に一致する単語はありません':'まだ単語がありません。上の欄から追加しましょう。';
+
+  const groups=new Map();
+  if(sortMode==='abc'){
+    shown.sort(cmp);
+    for(const w of shown){ const L=letterOf(w.word); if(!groups.has(L))groups.set(L,[]); groups.get(L).push(w); }
+  }else{
+    shown.sort((a,b)=>b.added-a.added);
+    groups.set('',shown);
+  }
+
+  az.hidden=sortMode!=='abc';
+  az.innerHTML='';
+  for(const L of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'){
+    const a=document.createElement('a');
+    a.textContent=L; a.href='#g-'+L;
+    if(!groups.has(L)) a.className='off';
+    a.addEventListener('click',e=>{e.preventDefault(); $('g-'+L)?.scrollIntoView({behavior:'smooth'});});
+    az.appendChild(a);
+  }
+
+  for(const [L,items] of groups){
+    const sec=document.createElement('section'); sec.className='group';
+    if(L){ const h=document.createElement('h2'); h.id='g-'+L; h.textContent=L; sec.appendChild(h); }
+    for(const w of items){
+      const b=document.createElement('button');
+      b.type='button'; b.className='item'; b.dataset.id=w.id;
+      const hid=hideMeaning && !revealed.has(w.id);
+      b.innerHTML='<span class="w">'+hl(w.word,q)+'</span><span class="m'+(hid?' hid':'')+'">'+(hl(w.meaning,q)||'<span style="color:var(--sub)">(意味なし)</span>')+'</span>';
+      b.addEventListener('click',()=>{
+        if(hideMeaning && !revealed.has(w.id)){ revealed.add(w.id); render(); return; }
+        openEdit(w);
+      });
+      sec.appendChild(b);
+    }
+    list.appendChild(sec);
+  }
+}
+
+function flashItem(id){
+  requestAnimationFrame(()=>{
+    const el=document.querySelector('.item[data-id="'+id+'"]');
+    if(!el) return;
+    el.scrollIntoView({block:'center',behavior:'smooth'});
+    el.classList.add('flash');
+  });
+}
+
+let toastT;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ================= 入力 ================= */
+const fWord=$('fWord'), fMean=$('fMean');
+
+function currentInput(){
+  // 英語欄に「英語…意味」と1行で書かれた場合は分割する
+  let w=fWord.value, m=fMean.value;
+  const p=splitLine(w);
+  if(p && p.word && !m.trim()){ w=p.word; m=p.meaning; }
+  return {word:w.trim(), meaning:m.trim()};
+}
+
+function updateExists(){
+  const {word}=currentInput();
+  $('addBtn').disabled=!word;
+  const ex=word && findWord(word);
+  $('exists').innerHTML=ex?'<span class="tag">登録済み</span><b>'+esc(ex.word)+'</b> … '+esc(ex.meaning||'(意味なし)'):'';
+}
+fWord.addEventListener('input',updateExists);
+fMean.addEventListener('input',updateExists);
+fWord.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && !e.isComposing){
+    e.preventDefault();
+    const {word,meaning}=currentInput();
+    if(word && meaning && splitLine(fWord.value)) $('addForm').requestSubmit();
+    else fMean.focus();
+  }
+});
+
+$('addForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const {word,meaning}=currentInput();
+  if(!word) return;
+  const {item,merged}=upsert(word,meaning);
+  save();
+  fWord.value=''; fMean.value=''; updateExists();
+  if($('q').value){ $('q').value=''; }
+  render(); flashItem(item.id);
+  toast(merged?'「'+item.word+'」は登録済みなので意味を追記しました':'「'+item.word+'」を追加しました');
+  fWord.focus();
+});
+
+/* ================= 検索・表示切替 ================= */
+$('q').addEventListener('input',render);
+$('sortAbc').addEventListener('click',()=>{sortMode='abc';$('sortAbc').classList.add('on');$('sortNew').classList.remove('on');render();});
+$('sortNew').addEventListener('click',()=>{sortMode='new';$('sortNew').classList.add('on');$('sortAbc').classList.remove('on');render();});
+$('hideBtn').addEventListener('click',()=>{
+  hideMeaning=!hideMeaning; revealed.clear();
+  $('hideBtn').classList.toggle('on',hideMeaning);
+  $('hideBtn').textContent=hideMeaning?'意味を表示':'意味をかくす';
+  render();
+});
+
+/* ================= 編集 ================= */
+let editing=null;
+function openEdit(w){
+  editing=w;
+  $('eWord').value=w.word; $('eMean').value=w.meaning;
+  $('editDlg').showModal();
+}
+$('editDlg').addEventListener('close',()=>{
+  if($('editDlg').returnValue==='save' && editing){
+    const nw=$('eWord').value.trim(), nm=$('eMean').value.trim();
+    if(nw){
+      const dup=findWord(nw);
+      if(dup && dup!==editing){
+        // 別の登録済み単語と同じ綴りになった場合はまとめる
+        upsert(nw,nm); words=words.filter(x=>x!==editing);
+        toast('「'+dup.word+'」にまとめました');
+      }else{ editing.word=nw; editing.meaning=nm; }
+      save(); render();
+    }
+  }
+  editing=null; $('editDlg').returnValue='';
+});
+$('delBtn').addEventListener('click',()=>{
+  if(!editing) return;
+  if(!confirm('「'+editing.word+'」を削除しますか?')) return;
+  words=words.filter(x=>x!==editing);
+  save(); editing=null; $('editDlg').close(); render(); toast('削除しました');
+});
+
+/* ================= まとめて貼り付け ================= */
+$('bulkOpen').addEventListener('click',()=>{ $('bulkText').value=''; bulkPreview(); $('bulkDlg').showModal(); });
+function bulkPreview(){
+  const items=parseBulk($('bulkText').value);
+  $('bulkAdd').disabled=!items.length;
+  if(!items.length){ $('bulkPrev').innerHTML=''; return; }
+  const dup=items.filter(i=>findWord(i.word)).length;
+  $('bulkPrev').innerHTML='<b>'+items.length+'語</b>を読み取りました'+(dup?'(うち登録済み '+dup+'語)':'')+'<br>'+
+    items.slice(0,30).map(i=>esc(i.word)+' … '+esc(i.meaning||'(意味なし)')).join('<br>')+(items.length>30?'<br>…':'');
+}
+$('bulkText').addEventListener('input',bulkPreview);
+$('bulkDlg').addEventListener('close',()=>{
+  if($('bulkDlg').returnValue!=='add') return;
+  const items=parseBulk($('bulkText').value);
+  for(const i of items) upsert(i.word,i.meaning);
+  save(); render(); toast(items.length+'語を取り込みました');
+  $('bulkDlg').returnValue='';
+});
+
+/* ================= バックアップ ================= */
+$('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify({app:'vocab-book',version:1,words},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const d=new Date();
+  a.href=URL.createObjectURL(blob);
+  a.download='単語帳-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(!f) return;
+  try{
+    const data=JSON.parse(await f.text());
+    const list=Array.isArray(data)?data:data.words;
+    if(!Array.isArray(list)) throw 0;
+    let n=0;
+    for(const i of list){ if(i && typeof i.word==='string' && i.word.trim()){ upsert(i.word,String(i.meaning||'')); n++; } }
+    save(); render(); toast(n+'語を読み込みました(重複はまとめました)');
+  }catch(err){ toast('バックアップファイルを読み込めませんでした'); }
+});
+
+/* ================= 初期データ(最初に書き溜めていた単語) ================= */
+function seed(){
+  const text=`Competent…有能
+Exclusively…限定≒only
+Sensible…実用的
+yet…だが
+Innovative yet sensible…斬新だが実用的
+Predictably…予想通り
+Ranks…順位を占める
+Quote…見積もりを提示する
+Ensure…確実にする
+Discontinue…中止
+Discontinued 〇〇…製造中止
+irrigation…灌漑
+Attempt…試み
+How-to…やり方(形容詞)
+an ——— 形 名…→型or副
+a range of…種類
+Legible…読みやすい
+Follow-up…その後の
+Exceptional…素晴らしく
+So far…これまでのところ
+will form…結成するつもり
+within a short walking distance…徒歩ですぐの距離
+dispose of…〇〇を処分する
+to have 〇 原型動詞…〇に〜させる
+to have 〇 過去分詞…〇に〜してもらう
+Had(文頭)…仮定法過去完了形「もしあのとき〜だったら〜だっただろう」→(would/could/might)+have +過去分詞
+before/after…+節(SV)/名詞
+The work week…週の労働時間
+Allow for…可能にする
+Pick up…上向く
+Reinforce…強固にする
+Account for 〇…〇の割合を占める
+with O 分詞…「〜した状態/〜された状態」
+size…〜サイズで作る、他動詞
+than 過去分詞…〜されたより
+when + 分詞…whenの後は分詞→〜ing,〜ed
+Wholesome…健康に良い
+Despite…にもかかわらず
+Although…〜だが
+However…しかしながら
+Once…したらすぐに(接続詞)
+Prediction…予測、予想
+Alike…同様に(副詞)
+Alike…よく似た(形容詞)
+rather…かなり
+Likewise…同様に、〜もまた
+Since…〜なので
+Whereas…〜であるのに対して
+In case…〜が理由で
+Except…〜を除く
+In particular…特に(副詞)
+Therefore…それゆえ
+Given that…〜を考慮すると
+In order to…〜するために
+Prior to…〜の前に
+Proceed…〜を始める、着手する
+Then…そのとき
+Even though…〜だが
+Rather than…〜ではなく、〜より、むしろ
+So that S can V…SがVできるよう
+Would…〜だろう
+As well as…〜に加えて
+Absence…欠席
+Query…質問
+Tend…〜しがち、〜する傾向
+Persuasive…説得力のある
+On 〇〇 behalf…〇〇の代わりに
+Cuisine…料理
+Throughout…〜中ずっと(時間)、至る所に
+Onto…〜の方へ、〜へ向けられて、〜に面して
+Direction…方向、指示
+Along…前へ、先へ
+Into…Xを加工してYにする
+Over the 〇〇(時)…〜にわたって
+From 〇〇 to 〇〇…〇〇から〇〇まで
+By 〇〇…〇〇までに
+At 〇〇…(点をイメージ)
+Upon…〜したらすぐに、〜の時
+In accordance with…(ルールなど)に従って
+In order of…〜順に
+In line of…〜の候補で
+In place of…〜の代わりに
+Optimize…活用する
+Many…多数の人、多数のモノ(代名詞)
+Whoever…〜する人は誰でも
+Expresse…表明
+Consist of…〜で構成された
+Distinguished…著名な`;
+  // 区切りは「…」だけ(意味の中の「→」で切らないように)
+  const out=[]; const t0=Date.now()-100000;
+  text.split('\n').forEach((line,i)=>{
+    const k=line.indexOf('…');
+    const word=line.slice(0,k).trim(), meaning=line.slice(k+1).trim();
+    const ex=out.find(x=>norm(x.word)===norm(word));
+    if(ex){ ex.meaning+=' / '+meaning; return; }
+    out.push({id:'s'+i,word,meaning,added:t0+i});
+  });
+  return out;
+}
+
+/* ================= 起動 ================= */
+load();
+render();
+if(!storageOK) toast('この端末に保存できません(プライベートモード?)');
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
