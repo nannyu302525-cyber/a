@@ -14,11 +14,13 @@
   :root{
     --bg:#f6f4ef; --card:#ffffff; --ink:#1d1f24; --sub:#6b6f78; --line:#e4e1d8;
     --accent:#2f6fde; --accent-ink:#ffffff; --hit:#fff3c4; --danger:#c8402f;
+    --ok:#1f8a4c; --ok-bg:#e1f3e8; --mid:#b07400; --mid-bg:#fbf0d6; --ng:#c8402f; --ng-bg:#fbe5e1;
   }
   @media (prefers-color-scheme: dark){
     :root{
       --bg:#16181d; --card:#1f2229; --ink:#e9eaee; --sub:#9aa0ab; --line:#2e323b;
       --accent:#6a9cff; --accent-ink:#0f1115; --hit:#4a3f12; --danger:#ff7a68;
+      --ok:#5fd08f; --ok-bg:#183223; --mid:#f0bf55; --mid-bg:#352a12; --ng:#ff7a68; --ng-bg:#3a1d19;
     }
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -63,7 +65,8 @@
   /* ---- 検索と表示切替 ---- */
   .tools{display:flex;gap:8px;align-items:center;margin:18px 0 0;flex-wrap:wrap;}
   .tools #q{flex:1 1 200px;}
-  .seg{display:flex;gap:6px;}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg .ghost{white-space:nowrap;}
 
   /* ---- A–Z ジャンプ ---- */
   #az{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;
@@ -82,14 +85,28 @@
   .group .item:nth-of-type(1){border-radius:12px 12px 0 0;}
   .group .item:last-child{border-radius:0 0 12px 12px;}
   .group .item:only-of-type{border-radius:12px;}
+  .item{align-items:center;padding:4px 6px 4px 0;}
+  .item .body{flex:1;min-width:0;display:flex;gap:12px;align-items:baseline;text-align:left;background:transparent;color:inherit;
+    border-radius:8px;padding:6px 0 6px 12px;}
   .item .w{flex:0 0 42%;font-weight:600;word-break:break-word;}
-  .item .m{flex:1;color:var(--ink);word-break:break-word;}
+  .item .m{flex:1;min-width:0;color:var(--ink);word-break:break-word;}
+  /* 〇△× ワンタッチ評価 */
+  .marks{display:flex;gap:2px;flex:0 0 auto;}
+  .mk{width:32px;height:32px;border-radius:8px;background:transparent;color:var(--sub);opacity:.45;font-size:.95rem;font-weight:700;line-height:1;padding:0;}
+  .mk:hover{opacity:.9;}
+  .mk.on{opacity:1;}
+  .item .body:focus{outline:none;}
+  .item .body:focus-visible,.mk:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .mk.on[data-v="o"]{background:var(--ok-bg);color:var(--ok);}
+  .mk.on[data-v="d"]{background:var(--mid-bg);color:var(--mid);}
+  .mk.on[data-v="x"]{background:var(--ng-bg);color:var(--ng);}
+  .group h2 .n{font-weight:400;margin-left:6px;}
   .item .m.hid{color:transparent;background:var(--line);border-radius:6px;user-select:none;}
   .item.flash{animation:flash 1.6s ease-out;}
   @keyframes flash{from{background:var(--hit);}to{background:var(--card);}}
   mark{background:var(--hit);color:inherit;border-radius:3px;}
   #empty{color:var(--sub);text-align:center;padding:40px 0;font-size:.9rem;}
-  @media (max-width:420px){ .item{flex-direction:column;gap:2px;} .item .w{flex:none;} }
+  @media (max-width:420px){ .item .body{flex-direction:column;gap:2px;} .item .w{flex:none;} }
 
   .menu{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:28px;}
 
@@ -128,6 +145,7 @@
     <div class="seg">
       <button class="ghost on" id="sortAbc" type="button">ABC順</button>
       <button class="ghost" id="sortNew" type="button">新しい順</button>
+      <button class="ghost" id="sortMark" type="button" title="×→△→未評価→〇の順">覚え具合順</button>
       <button class="ghost" id="hideBtn" type="button" title="意味をかくして復習">意味をかくす</button>
     </div>
   </div>
@@ -267,6 +285,10 @@ function render(){
   if(sortMode==='abc'){
     shown.sort(cmp);
     for(const w of shown){ const L=letterOf(w.word); if(!groups.has(L))groups.set(L,[]); groups.get(L).push(w); }
+  }else if(sortMode==='mark'){
+    // 覚えられないものから順に: × → △ → 未評価 → 〇(各グループ内はABC順)
+    shown.sort(cmp);
+    for(const k of ['x','d','','o']){ const g=shown.filter(w=>(w.mark||'')===k); if(g.length) groups.set('m'+k,g); }
   }else{
     shown.sort((a,b)=>b.added-a.added);
     groups.set('',shown);
@@ -284,20 +306,43 @@ function render(){
 
   for(const [L,items] of groups){
     const sec=document.createElement('section'); sec.className='group';
-    if(L){ const h=document.createElement('h2'); h.id='g-'+L; h.textContent=L; sec.appendChild(h); }
+    if(L){
+      const h=document.createElement('h2');
+      if(L.startsWith('m')){ h.innerHTML=esc(MARK_LABEL[L.slice(1)])+'<span class="n">'+items.length+'語</span>'; }
+      else { h.id='g-'+L; h.textContent=L; }
+      sec.appendChild(h);
+    }
     for(const w of items){
-      const b=document.createElement('button');
-      b.type='button'; b.className='item'; b.dataset.id=w.id;
+      const row=document.createElement('div');
+      row.className='item'; row.dataset.id=w.id;
       const hid=hideMeaning && !revealed.has(w.id);
+      const b=document.createElement('button');
+      b.type='button'; b.className='body';
       b.innerHTML='<span class="w">'+hl(w.word,q)+'</span><span class="m'+(hid?' hid':'')+'">'+(hl(w.meaning,q)||'<span style="color:var(--sub)">(意味なし)</span>')+'</span>';
       b.addEventListener('click',()=>{
         if(hideMeaning && !revealed.has(w.id)){ revealed.add(w.id); render(); return; }
         openEdit(w);
       });
-      sec.appendChild(b);
+      const marks=document.createElement('div'); marks.className='marks';
+      for(const [v,ch,label] of [['o','〇','知ってる'],['d','△','微妙'],['x','×','覚えられない']]){
+        const m=document.createElement('button');
+        m.type='button'; m.className='mk'+(w.mark===v?' on':''); m.dataset.v=v; m.textContent=ch;
+        m.title=label; m.setAttribute('aria-label',w.word+': '+label); m.setAttribute('aria-pressed',w.mark===v);
+        m.addEventListener('click',()=>setMark(w,v));
+        marks.appendChild(m);
+      }
+      row.append(b,marks);
+      sec.appendChild(row);
     }
     list.appendChild(sec);
   }
+}
+
+/* 〇△× をワンタッチで記録(同じ印をもう一度押すと解除) */
+const MARK_LABEL={o:'〇 知ってる',d:'△ 微妙',x:'× 覚えられない','':'未評価'};
+function setMark(w,v){
+  w.mark = w.mark===v ? '' : v;
+  save(); render();
 }
 
 function flashItem(id){
@@ -358,8 +403,14 @@ $('addForm').addEventListener('submit',e=>{
 
 /* ================= 検索・表示切替 ================= */
 $('q').addEventListener('input',render);
-$('sortAbc').addEventListener('click',()=>{sortMode='abc';$('sortAbc').classList.add('on');$('sortNew').classList.remove('on');render();});
-$('sortNew').addEventListener('click',()=>{sortMode='new';$('sortNew').classList.add('on');$('sortAbc').classList.remove('on');render();});
+const SORT_BTNS={abc:'sortAbc',new:'sortNew',mark:'sortMark'};
+for(const [mode,id] of Object.entries(SORT_BTNS)){
+  $(id).addEventListener('click',()=>{
+    sortMode=mode;
+    for(const other of Object.values(SORT_BTNS)) $(other).classList.toggle('on',other===id);
+    render();
+  });
+}
 $('hideBtn').addEventListener('click',()=>{
   hideMeaning=!hideMeaning; revealed.clear();
   $('hideBtn').classList.toggle('on',hideMeaning);
@@ -434,7 +485,13 @@ $('importFile').addEventListener('change',async e=>{
     const list=Array.isArray(data)?data:data.words;
     if(!Array.isArray(list)) throw 0;
     let n=0;
-    for(const i of list){ if(i && typeof i.word==='string' && i.word.trim()){ upsert(i.word,String(i.meaning||'')); n++; } }
+    for(const i of list){
+      if(i && typeof i.word==='string' && i.word.trim()){
+        const {item}=upsert(i.word,String(i.meaning||''));
+        if(['o','d','x'].includes(i.mark)) item.mark=i.mark;
+        n++;
+      }
+    }
     save(); render(); toast(n+'語を読み込みました(重複はまとめました)');
   }catch(err){ toast('バックアップファイルを読み込めませんでした'); }
 });
