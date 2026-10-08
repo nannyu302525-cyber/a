@@ -31,7 +31,7 @@
     line-height:1.5;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;}
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;overflow-x:clip;}
   header{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 14px;}
   h1{font-size:1.25rem;font-weight:700;letter-spacing:.04em;}
   #count{font-size:.8rem;color:var(--sub);}
@@ -68,9 +68,26 @@
   .seg{display:flex;gap:6px;flex-wrap:wrap;}
   .seg .ghost{white-space:nowrap;}
 
+  /* ---- 追加欄・検索欄・A–Z を画面上に固定 ---- */
+  .stick{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);
+    margin-inline:-16px;padding:0 16px;border-bottom:1px solid var(--line);}
+  /* スクロール中は1行にまとめて場所を取らないように */
+  .stick.stuck{padding-top:8px;}
+  .stick.stuck .add{display:flex;gap:6px;padding:8px;border-radius:12px;}
+  .stick.stuck .add .row{display:contents;}
+  .stick.stuck #fWord{margin-bottom:0;flex:1 1 0;}
+  .stick.stuck #fMean{flex:1 1 0;}
+  .stick.stuck .add .primary{padding:8px 12px;}
+  .stick.stuck .add .hint,.stick.stuck #exists{display:none;}
+  .stick.stuck .tools{margin-top:8px;flex-wrap:nowrap;gap:6px;}
+  .stick.stuck .tools #q{flex:0 0 44%;padding:8px 10px;}
+  .stick.stuck .seg{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+  .stick.stuck .seg::-webkit-scrollbar{display:none;}
+  .stick.stuck .seg .ghost{padding:7px 10px;font-size:.8rem;}
+  #stickMark{height:1px;margin-bottom:-1px;}
+
   /* ---- A–Z ジャンプ ---- */
-  #az{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;
-    padding:10px 0 8px;border-bottom:1px solid var(--line);margin-top:10px;}
+  #az{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:10px 0 8px;margin-top:4px;}
   #az::-webkit-scrollbar{display:none;}
   #az[hidden]{display:none;}
   #az a{flex:0 0 auto;min-width:28px;text-align:center;font-size:.8rem;font-weight:700;padding:3px 0;
@@ -79,7 +96,7 @@
   #az a:hover{background:var(--card);}
 
   /* ---- 一覧 ---- */
-  .group h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:14px 4px 4px;scroll-margin-top:52px;}
+  .group h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:14px 4px 4px;scroll-margin-top:calc(var(--stick-h,52px) + 8px);}
   .item{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left;background:var(--card);color:var(--ink);
     border:1px solid var(--line);border-radius:0;padding:10px 12px;margin-top:-1px;}
   .group .item:nth-of-type(1){border-radius:12px 12px 0 0;}
@@ -168,6 +185,12 @@
   #toTop:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
   #toTop svg{width:22px;height:22px;}
   @media (prefers-reduced-motion:reduce){ #toTop{transition:none;} }
+  /* ---- タブ切り替えの動き ---- */
+  .in-right{animation:inRight .22s ease-out;}
+  .in-left{animation:inLeft .22s ease-out;}
+  @keyframes inRight{from{transform:translateX(28px);opacity:.4;}to{transform:none;opacity:1;}}
+  @keyframes inLeft{from{transform:translateX(-28px);opacity:.4;}to{transform:none;opacity:1;}}
+  @media (prefers-reduced-motion:reduce){ .in-right,.in-left{animation:none;} }
   #logEmpty{color:var(--sub);text-align:center;padding:32px 0;font-size:.9rem;}
 </style>
 </head>
@@ -184,6 +207,8 @@
   </nav>
 
   <section id="tabWords" role="tabpanel">
+  <div id="stickMark" aria-hidden="true"></div>
+  <div class="stick" id="stick">
   <form class="add" id="addForm" autocomplete="off">
     <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
     <div class="row">
@@ -205,6 +230,7 @@
   </div>
 
   <nav id="az" aria-label="頭文字へジャンプ"></nav>
+  </div>
   <div id="list"></div>
   <p id="empty" hidden></p>
   </section>
@@ -600,17 +626,50 @@ $('importFile').addEventListener('change',async e=>{
 
 /* ================= タブ ================= */
 const TAB_KEY='vocab-tab';
-function showTab(name){
+let curTab='words';
+const tabScroll={words:0,log:0};   // タブごとのスクロール位置(戻ったときに元の場所へ)
+function showTab(name,dir){
   const log=name==='log';
+  if(name!==curTab) tabScroll[curTab]=window.scrollY;
+  const changed=name!==curTab;
+  curTab=name;
   $('tabWords').hidden=log; $('tabLog').hidden=!log;
   $('tabBtnWords').setAttribute('aria-selected',!log);
   $('tabBtnLog').setAttribute('aria-selected',log);
   $('count').textContent=log?mistakes.length+'件':words.length+'語';
   try{ localStorage.setItem(TAB_KEY,name); }catch(e){}
   if(log) renderLog();
+  if(changed){
+    window.scrollTo(0,tabScroll[name]);
+    // スワイプの向きに合わせて横から入ってくる動き
+    const panel=log?$('tabLog'):$('tabWords');
+    panel.classList.remove('in-left','in-right');
+    if(dir){ void panel.offsetWidth; panel.classList.add(dir>0?'in-right':'in-left'); }
+  }
 }
-$('tabBtnWords').addEventListener('click',()=>showTab('words'));
-$('tabBtnLog').addEventListener('click',()=>showTab('log'));
+$('tabBtnWords').addEventListener('click',()=>showTab('words',-1));
+$('tabBtnLog').addEventListener('click',()=>showTab('log',1));
+
+/* --- 左右スワイプでタブを切り替え --- */
+(()=>{
+  let sx=0, sy=0, st=0, track=false;
+  // 横にスクロールする部品や入力欄の上では切り替えない
+  const SKIP='input,textarea,select,#az,.seg,dialog,.chips';
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1 || document.querySelector('dialog[open]')){ track=false; return; }
+    const t=e.touches[0];
+    // 画面の端はブラウザの「戻る」操作とぶつかるので使わない
+    track=!e.target.closest(SKIP) && t.clientX>20 && t.clientX<window.innerWidth-20;
+    sx=t.clientX; sy=t.clientY; st=Date.now();
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!track) return; track=false;
+    const t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-st>700 || Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.8) return;
+    if(dx<0 && curTab==='words') showTab('log',1);        // 左へスワイプ → 右隣の「間違えた問題」
+    else if(dx>0 && curTab==='log') showTab('words',-1);  // 右へスワイプ → 左隣の「単語帳」
+  },{passive:true});
+})();
 
 /* ================= 間違えた問題 ================= */
 const LOG_KEY='vocab-mistakes-v1';
@@ -766,6 +825,23 @@ function renderLog(){
     list.appendChild(sec);
   }
 }
+
+/* ================= 追加欄・検索欄の固定 ================= */
+(()=>{
+  const stick=$('stick'), mark=$('stickMark');
+  // 固定ブロックの直前の目印が画面外に出たら「スクロール中」の詰めた表示にする
+  // 詰めた表示では入力欄が狭いので、案内文も短くする
+  const PH=[[fWord,'英語(例: Competent)','英語'],[fMean,'意味(例: 有能)','意味'],[$('q'),'検索(英語・日本語どちらでも)','検索']];
+  new IntersectionObserver(([e])=>{
+    const stuck=!e.isIntersecting && e.boundingClientRect.top<0;
+    stick.classList.toggle('stuck',stuck);
+    for(const [el,full,short] of PH) el.placeholder=stuck?short:full;
+  }).observe(mark);
+  // 見出しへジャンプしたとき固定ブロックに隠れないよう高さを共有
+  new ResizeObserver(()=>{
+    document.documentElement.style.setProperty('--stick-h',stick.offsetHeight+'px');
+  }).observe(stick);
+})();
 
 /* ================= 一番上へ戻る ================= */
 (()=>{
