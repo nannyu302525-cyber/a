@@ -24,14 +24,22 @@
     }
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html{-webkit-text-size-adjust:100%;}
+  html{-webkit-text-size-adjust:100%;height:100%;}
   body{
     background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
     line-height:1.5;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;
   }
-  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;overflow-x:clip;}
+  /* 見出しとタブは固定、その下に2つの画面を横に並べて、指で引っ張って切り替える */
+  .top{flex:0 0 auto;width:100%;max-width:640px;margin:0 auto;padding:16px 16px 0;}
+  .pager{flex:1 1 auto;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;}
+  .pager::-webkit-scrollbar{display:none;}
+  .pane{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;
+    scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;}
+  .pane .inner{max-width:640px;margin:0 auto;padding:0 16px 80px;}
   header{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 14px;}
   h1{font-size:1.25rem;font-weight:700;letter-spacing:.04em;}
   #count{font-size:.8rem;color:var(--sub);}
@@ -69,7 +77,7 @@
   .seg .ghost{white-space:nowrap;}
 
   /* ---- 追加欄・検索欄・A–Z を画面上に固定 ---- */
-  .stick{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);
+  .stick{position:sticky;top:0;z-index:5;background:var(--bg);
     margin-inline:-16px;padding:0 16px;border-bottom:1px solid var(--line);}
   /* スクロール中は1行にまとめて場所を取らないように */
   .stick.stuck{padding-top:8px;}
@@ -81,13 +89,13 @@
   .stick.stuck .add .hint,.stick.stuck #exists{display:none;}
   .stick.stuck .tools{margin-top:8px;flex-wrap:nowrap;gap:6px;}
   .stick.stuck .tools #q{flex:0 0 44%;padding:8px 10px;}
-  .stick.stuck .seg{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+  .stick.stuck .seg{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;}
   .stick.stuck .seg::-webkit-scrollbar{display:none;}
   .stick.stuck .seg .ghost{padding:7px 10px;font-size:.8rem;}
   #stickMark{height:1px;margin-bottom:-1px;}
 
   /* ---- A–Z ジャンプ ---- */
-  #az{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:10px 0 8px;margin-top:4px;}
+  #az{display:flex;gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:10px 0 8px;margin-top:4px;}
   #az::-webkit-scrollbar{display:none;}
   #az[hidden]{display:none;}
   #az a{flex:0 0 auto;min-width:28px;text-align:center;font-size:.8rem;font-weight:700;padding:3px 0;
@@ -145,8 +153,7 @@
   .tabs button[aria-selected="true"]{color:var(--ink);}
   /* 選択中の白い下地。スワイプ中は指に合わせて動く */
   #tabInd{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 6px);border-radius:9px;background:var(--card);
-    box-shadow:0 1px 2px rgba(0,0,0,.08);transition:transform .28s cubic-bezier(.2,.8,.2,1);}
-  #tabWords,#tabLog{will-change:transform;}
+    box-shadow:0 1px 2px rgba(0,0,0,.08);}
 
   /* ---- 間違えた問題 ---- */
   .logform{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
@@ -193,7 +200,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="top">
   <header>
     <h1>わたしの単語帳</h1>
     <span id="count"></span>
@@ -204,8 +211,10 @@
     <button type="button" role="tab" id="tabBtnWords" aria-selected="true" aria-controls="tabWords">単語帳</button>
     <button type="button" role="tab" id="tabBtnLog" aria-selected="false" aria-controls="tabLog">間違えた問題</button>
   </nav>
+</div>
 
-  <section id="tabWords" role="tabpanel">
+<div class="pager" id="pager">
+  <section id="tabWords" class="pane" role="tabpanel"><div class="inner" id="innerWords">
   <div id="stickMark" aria-hidden="true"></div>
   <div class="stick" id="stick">
   <form class="add" id="addForm" autocomplete="off">
@@ -232,9 +241,15 @@
   </div>
   <div id="list"></div>
   <p id="empty" hidden></p>
-  </section>
+  <div class="menu" id="menu">
+    <button class="ghost" id="bulkOpen" type="button">まとめて貼り付け</button>
+    <button class="ghost" id="exportBtn" type="button">バックアップを保存</button>
+    <button class="ghost" id="importBtn" type="button">バックアップを読み込み</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+  </div></section>
 
-  <section id="tabLog" role="tabpanel" hidden>
+  <section id="tabLog" class="pane" role="tabpanel"><div class="inner" id="innerLog">
     <form class="logform" id="logForm" autocomplete="off">
       <div class="row3">
         <div id="lBook"><label for="lBookIn">テキスト・問題集</label><input id="lBookIn" list="bookList" placeholder="例: 公式TOEIC問題集 10"></div>
@@ -263,14 +278,7 @@
     <input id="lq" type="search" placeholder="メモや単語で検索" aria-label="間違えた問題を検索" style="margin-top:8px">
     <div id="logList"></div>
     <p id="logEmpty" hidden></p>
-  </section>
-
-  <div class="menu">
-    <button class="ghost" id="bulkOpen" type="button">まとめて貼り付け</button>
-    <button class="ghost" id="exportBtn" type="button">バックアップを保存</button>
-    <button class="ghost" id="importBtn" type="button">バックアップを読み込み</button>
-    <input type="file" id="importFile" accept="application/json,.json" hidden>
-  </div>
+  </div></section>
 </div>
 
 <dialog id="editDlg">
@@ -388,7 +396,7 @@ function render(){
   const q=$('q').value.trim();
   const ql=q.toLowerCase();
   let shown=q?words.filter(w=>w.word.toLowerCase().includes(ql)||w.meaning.toLowerCase().includes(ql)):words.slice();
-  if(!$('tabWords').hidden) $('count').textContent=words.length+'語';
+  if(curTab==='words') $('count').textContent=words.length+'語';
 
   const list=$('list'); list.innerHTML='';
   const az=$('az');
@@ -626,110 +634,38 @@ $('importFile').addEventListener('change',async e=>{
 /* ================= タブ ================= */
 const TAB_KEY='vocab-tab';
 let curTab='words';
-const tabScroll={words:0,log:0};   // タブごとのスクロール位置(戻ったときに元の場所へ)
-function showTab(name){
-  const log=name==='log';
-  const changed=name!==curTab;
-  if(changed) tabScroll[curTab]=window.scrollY;
+const pager=$('pager');
+const panelOf=n=>n==='log'?$('tabLog'):$('tabWords');
+const idxOf=n=>n==='log'?1:0;
+const reduceMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* 2つの画面は横に並んでいて、それぞれ自分のスクロール位置を持つ(戻ると前の場所のまま) */
+function settleTab(name){
+  if(name===curTab) return;
   curTab=name;
-  $('tabWords').hidden=log; $('tabLog').hidden=!log;
+  const log=name==='log';
   $('tabBtnWords').setAttribute('aria-selected',!log);
   $('tabBtnLog').setAttribute('aria-selected',log);
-  setInd(log?1:0,false);
   $('count').textContent=log?mistakes.length+'件':words.length+'語';
   try{ localStorage.setItem(TAB_KEY,name); }catch(e){}
+  (log?$('innerLog'):$('innerWords')).appendChild($('menu'));   // 共通メニューは見ている画面の下へ
   if(log) renderLog();
-  if(changed) window.scrollTo(0,tabScroll[name]);
+  updateToTop();
 }
-
-/* --- タブの白い下地(0 = 単語帳, 1 = 間違えた問題、途中の値はスワイプ中) --- */
-function setInd(p,follow){
-  const ind=$('tabInd');
-  ind.style.transition=follow?'none':'';
-  ind.style.transform='translateX(calc('+p+' * (100% + 4px)))';
+function showTab(name,smooth){
+  pager.scrollTo({left:idxOf(name)*pager.clientWidth,behavior:smooth&&!reduceMotion()?'smooth':'auto'});
+  settleTab(name);
 }
+$('tabBtnWords').addEventListener('click',()=>showTab('words',true));
+$('tabBtnLog').addEventListener('click',()=>showTab('log',true));
 
-/* --- ヌルッと切り替える --- */
-const panelOf=n=>n==='log'?$('tabLog'):$('tabWords');
-const reduceMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const EASE_OUT='cubic-bezier(.2,.8,.2,1)';
-let sliding=false;
-function clearSlide(el){ el.style.transition=''; el.style.transform=''; el.style.opacity=''; }
-/* dir: +1 = 右隣のタブへ(今の画面は左へ抜ける), -1 = 左隣へ */
-function slideTo(name,dir){
-  if(name===curTab||sliding) return;
-  if(reduceMotion()){ clearSlide(panelOf(curTab)); showTab(name); return; }
-  sliding=true;
-  const W=window.innerWidth, out=panelOf(curTab);
-  setInd(name==='log'?1:0,false);
-  // 今の画面を指の位置からそのまま画面外へ
-  out.style.transition='transform .16s cubic-bezier(.4,0,1,1), opacity .16s linear';
-  out.style.transform='translateX('+(-dir*W)+'px)'; out.style.opacity='0';
-  setTimeout(()=>{
-    clearSlide(out);
-    showTab(name);
-    // 次の画面を反対側から滑り込ませる
-    const inn=panelOf(name);
-    inn.style.transition='none';
-    inn.style.transform='translateX('+(dir*W*0.5)+'px)'; inn.style.opacity='0';
-    void inn.offsetWidth;
-    inn.style.transition='transform .3s '+EASE_OUT+', opacity .22s linear';
-    inn.style.transform=''; inn.style.opacity='';
-    setTimeout(()=>{ inn.style.transition=''; sliding=false; },320);
-  },160);
-}
-$('tabBtnWords').addEventListener('click',()=>slideTo('words',-1));
-$('tabBtnLog').addEventListener('click',()=>slideTo('log',1));
-
-/* --- 左右スワイプ: 画面が指についてきて、離すと続きを動かす --- */
-(()=>{
-  let sx=0, sy=0, st=0, state='idle', panel=null, lastX=0, lastT=0, vx=0;
-  // 横にスクロールする部品や入力欄の上では切り替えない
-  const SKIP='input,textarea,select,#az,.seg,dialog,.chips';
-  const neighbor=dx=>dx<0?(curTab==='words'?'log':null):(curTab==='log'?'words':null);
-  document.addEventListener('touchstart',e=>{
-    state='idle';
-    if(sliding || e.touches.length!==1 || document.querySelector('dialog[open]')) return;
-    const t=e.touches[0];
-    // 画面の端はブラウザの「戻る」操作とぶつかるので使わない
-    if(e.target.closest(SKIP) || t.clientX<=20 || t.clientX>=window.innerWidth-20) return;
-    sx=lastX=t.clientX; sy=t.clientY; st=lastT=Date.now(); vx=0; state='pending';
-  },{passive:true});
-  document.addEventListener('touchmove',e=>{
-    if(state==='idle') return;
-    const t=e.touches[0], dx=t.clientX-sx, dy=t.clientY-sy;
-    if(state==='pending'){
-      if(Math.abs(dx)<10 && Math.abs(dy)<10) return;
-      // 最初の動きで縦スクロールか横スワイプかを決める
-      if(Math.abs(dx)>Math.abs(dy)*1.2){ state='drag'; panel=panelOf(curTab); panel.style.transition='none'; }
-      else { state='idle'; return; }
-    }
-    e.preventDefault();
-    const now=Date.now(); vx=(t.clientX-lastX)/Math.max(1,now-lastT); lastX=t.clientX; lastT=now;
-    const W=window.innerWidth, can=!!neighbor(dx);
-    const x=can?dx:dx*0.2;                          // 隣がない方向は少しだけ動いて止まる
-    panel.style.transform='translateX('+x+'px)';
-    panel.style.opacity=String(1-Math.min(.6,Math.abs(x)/W*.8));
-    const base=curTab==='log'?1:0;
-    setInd(can?base-dx/W:base,true);
-  },{passive:false});
-  const end=()=>{
-    if(state!=='drag'){ state='idle'; return; }
-    state='idle';
-    const dx=lastX-sx, W=window.innerWidth, next=neighbor(dx);
-    // 3割以上動かすか、素早く払ったら切り替え
-    if(next && (Math.abs(dx)>W*0.3 || (Math.abs(dx)>40 && Math.abs(vx)>0.45 && Math.sign(vx)===Math.sign(dx)))){
-      slideTo(next,dx<0?1:-1);
-    }else{
-      panel.style.transition='transform .28s '+EASE_OUT+', opacity .28s';
-      panel.style.transform=''; panel.style.opacity='';
-      setInd(curTab==='log'?1:0,false);
-      const p=panel; setTimeout(()=>{ p.style.transition=''; },300);
-    }
-  };
-  document.addEventListener('touchend',end,{passive:true});
-  document.addEventListener('touchcancel',end,{passive:true});
-})();
+/* タブの白い下地は画面の横位置にぴったりついていく(0 = 単語帳, 1 = 間違えた問題) */
+pager.addEventListener('scroll',()=>{
+  const p=pager.scrollLeft/Math.max(1,pager.clientWidth);
+  $('tabInd').style.transform='translateX(calc('+p.toFixed(4)+' * (100% + 4px)))';
+  if(Math.abs(p-Math.round(p))<0.02) settleTab(Math.round(p)?'log':'words');
+},{passive:true});
+window.addEventListener('resize',()=>{ pager.scrollLeft=idxOf(curTab)*pager.clientWidth; });
 
 /* ================= 間違えた問題 ================= */
 const LOG_KEY='vocab-mistakes-v1';
@@ -752,16 +688,16 @@ function lookupWord(w){
 
 /* 単語帳タブの該当単語へ移動 */
 function jumpToWord(w){
-  showTab('words');
+  showTab('words',false);
   $('q').value='';
   if(hideMeaning) revealed.add(w.id);
   render(); flashItem(w.id);
 }
 /* 未登録の単語を単語帳の入力欄へ */
 function prefillWord(text){
-  showTab('words');
+  showTab('words',false);
   fWord.value=text; fMean.value=''; updateExists();
-  window.scrollTo({top:0,behavior:'smooth'});
+  $('tabWords').scrollTo({top:0,behavior:'smooth'});
   fMean.focus();
   toast('意味を入れて「追加」を押すと登録されます');
 }
@@ -840,7 +776,7 @@ $('lq').addEventListener('input',renderLog);
 const numCmp=(a,b)=>String(a).localeCompare(String(b),'ja',{numeric:true});
 
 function renderLog(){
-  if(!$('tabLog').hidden) $('count').textContent=mistakes.length+'件';
+  if(curTab==='log') $('count').textContent=mistakes.length+'件';
   const books=[...new Set(mistakes.map(r=>r.book||'(テキスト名なし)'))].sort(numCmp);
   // 絞り込みと入力候補を更新
   const sel=$('lFilter'), cur=sel.value;
@@ -893,10 +829,10 @@ function renderLog(){
   // 詰めた表示では入力欄が狭いので、案内文も短くする
   const PH=[[fWord,'英語(例: Competent)','英語'],[fMean,'意味(例: 有能)','意味'],[$('q'),'検索(英語・日本語どちらでも)','検索']];
   new IntersectionObserver(([e])=>{
-    const stuck=!e.isIntersecting && e.boundingClientRect.top<0;
+    const stuck=!e.isIntersecting && e.rootBounds && e.boundingClientRect.top<e.rootBounds.top;
     stick.classList.toggle('stuck',stuck);
     for(const [el,full,short] of PH) el.placeholder=stuck?short:full;
-  }).observe(mark);
+  },{root:$('tabWords')}).observe(mark);
   // 見出しへジャンプしたとき固定ブロックに隠れないよう高さを共有
   new ResizeObserver(()=>{
     document.documentElement.style.setProperty('--stick-h',stick.offsetHeight+'px');
@@ -904,21 +840,18 @@ function renderLog(){
 })();
 
 /* ================= 一番上へ戻る ================= */
-(()=>{
-  const btn=$('toTop');
-  let shown=false;
-  const update=()=>{
-    const s=window.scrollY>window.innerHeight*0.6;   // 画面の6割ほど下がったら出す
-    if(s===shown) return;
-    shown=s; btn.classList.toggle('show',s); btn.tabIndex=s?0:-1;
-  };
-  window.addEventListener('scroll',update,{passive:true});
-  btn.addEventListener('click',()=>{
-    const smooth=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({top:0,behavior:smooth?'smooth':'auto'});
-  });
-  update();
-})();
+let toTopShown=false;
+function updateToTop(){
+  const pane=panelOf(curTab);
+  const s=pane.scrollTop>pane.clientHeight*0.6;   // 画面の6割ほど下がったら出す
+  if(s===toTopShown) return;
+  toTopShown=s; $('toTop').classList.toggle('show',s); $('toTop').tabIndex=s?0:-1;
+}
+$('tabWords').addEventListener('scroll',updateToTop,{passive:true});
+$('tabLog').addEventListener('scroll',updateToTop,{passive:true});
+$('toTop').addEventListener('click',()=>{
+  panelOf(curTab).scrollTo({top:0,behavior:reduceMotion()?'auto':'smooth'});
+});
 
 /* ================= 初期データ(最初に書き溜めていた単語) ================= */
 function seed(){
@@ -1026,7 +959,8 @@ Distinguished…著名な`;
 load();
 loadLog();
 render();
-try{ if(localStorage.getItem('vocab-tab')==='log') showTab('log'); }catch(e){}
+renderLog();
+try{ if(localStorage.getItem('vocab-tab')==='log') requestAnimationFrame(()=>showTab('log',false)); }catch(e){}
 if(!storageOK) toast('この端末に保存できません(プライベートモード?)');
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
