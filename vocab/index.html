@@ -31,7 +31,7 @@
     line-height:1.5;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;}
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 80px;overflow-x:clip;}
   header{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 14px;}
   h1{font-size:1.25rem;font-weight:700;letter-spacing:.04em;}
   #count{font-size:.8rem;color:var(--sub);}
@@ -185,6 +185,12 @@
   #toTop:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
   #toTop svg{width:22px;height:22px;}
   @media (prefers-reduced-motion:reduce){ #toTop{transition:none;} }
+  /* ---- タブ切り替えの動き ---- */
+  .in-right{animation:inRight .22s ease-out;}
+  .in-left{animation:inLeft .22s ease-out;}
+  @keyframes inRight{from{transform:translateX(28px);opacity:.4;}to{transform:none;opacity:1;}}
+  @keyframes inLeft{from{transform:translateX(-28px);opacity:.4;}to{transform:none;opacity:1;}}
+  @media (prefers-reduced-motion:reduce){ .in-right,.in-left{animation:none;} }
   #logEmpty{color:var(--sub);text-align:center;padding:32px 0;font-size:.9rem;}
 </style>
 </head>
@@ -620,17 +626,50 @@ $('importFile').addEventListener('change',async e=>{
 
 /* ================= タブ ================= */
 const TAB_KEY='vocab-tab';
-function showTab(name){
+let curTab='words';
+const tabScroll={words:0,log:0};   // タブごとのスクロール位置(戻ったときに元の場所へ)
+function showTab(name,dir){
   const log=name==='log';
+  if(name!==curTab) tabScroll[curTab]=window.scrollY;
+  const changed=name!==curTab;
+  curTab=name;
   $('tabWords').hidden=log; $('tabLog').hidden=!log;
   $('tabBtnWords').setAttribute('aria-selected',!log);
   $('tabBtnLog').setAttribute('aria-selected',log);
   $('count').textContent=log?mistakes.length+'件':words.length+'語';
   try{ localStorage.setItem(TAB_KEY,name); }catch(e){}
   if(log) renderLog();
+  if(changed){
+    window.scrollTo(0,tabScroll[name]);
+    // スワイプの向きに合わせて横から入ってくる動き
+    const panel=log?$('tabLog'):$('tabWords');
+    panel.classList.remove('in-left','in-right');
+    if(dir){ void panel.offsetWidth; panel.classList.add(dir>0?'in-right':'in-left'); }
+  }
 }
-$('tabBtnWords').addEventListener('click',()=>showTab('words'));
-$('tabBtnLog').addEventListener('click',()=>showTab('log'));
+$('tabBtnWords').addEventListener('click',()=>showTab('words',-1));
+$('tabBtnLog').addEventListener('click',()=>showTab('log',1));
+
+/* --- 左右スワイプでタブを切り替え --- */
+(()=>{
+  let sx=0, sy=0, st=0, track=false;
+  // 横にスクロールする部品や入力欄の上では切り替えない
+  const SKIP='input,textarea,select,#az,.seg,dialog,.chips';
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1 || document.querySelector('dialog[open]')){ track=false; return; }
+    const t=e.touches[0];
+    // 画面の端はブラウザの「戻る」操作とぶつかるので使わない
+    track=!e.target.closest(SKIP) && t.clientX>20 && t.clientX<window.innerWidth-20;
+    sx=t.clientX; sy=t.clientY; st=Date.now();
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!track) return; track=false;
+    const t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-st>700 || Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.8) return;
+    if(dx<0 && curTab==='words') showTab('log',1);        // 左へスワイプ → 右隣の「間違えた問題」
+    else if(dx>0 && curTab==='log') showTab('words',-1);  // 右へスワイプ → 左隣の「単語帳」
+  },{passive:true});
+})();
 
 /* ================= 間違えた問題 ================= */
 const LOG_KEY='vocab-mistakes-v1';
