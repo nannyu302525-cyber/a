@@ -1,6 +1,6 @@
 {
-  "name": "わたしの単語帳",
-  "short_name": "単語帳",
+  "name": "シンプル英単語",
+  "short_name": "シンプル英単語",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

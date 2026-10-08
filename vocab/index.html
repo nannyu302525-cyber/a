@@ -6,10 +6,11 @@
 <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#16181d" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="単語帳">
+<meta name="apple-mobile-web-app-title" content="シンプル英単語">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>わたしの単語帳</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<title>シンプル英単語</title>
 <style>
   :root{
     --bg:#f6f4ef; --card:#ffffff; --ink:#1d1f24; --sub:#6b6f78; --line:#e4e1d8;
@@ -243,7 +244,7 @@
 <div class="pager" id="pager">
   <section id="tabWords" class="pane" role="tabpanel"><div class="inner" id="innerWords">
   <header>
-    <h1>わたしの単語帳</h1>
+    <h1>シンプル英単語</h1>
     <span id="countWords"></span>
   </header>
   <div id="stickMark" class="stickmark" aria-hidden="true"></div>
@@ -285,7 +286,7 @@
 
   <section id="tabLog" class="pane" role="tabpanel"><div class="inner" id="innerLog">
   <header>
-    <h1>わたしの単語帳</h1>
+    <h1>シンプル英単語</h1>
     <span id="countLog"></span>
   </header>
   <div id="logStickMark" class="stickmark" aria-hidden="true"></div>
@@ -638,7 +639,7 @@ $('exportBtn').addEventListener('click',()=>{
   const a=document.createElement('a');
   const d=new Date();
   a.href=URL.createObjectURL(blob);
-  a.download='単語帳-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+  a.download='シンプル英単語-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
