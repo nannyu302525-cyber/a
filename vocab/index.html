@@ -94,7 +94,23 @@
   .stick.stuck .seg{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;}
   .stick.stuck .seg::-webkit-scrollbar{display:none;}
   .stick.stuck .seg .ghost{padding:7px 10px;font-size:.8rem;}
-  #stickMark{height:1px;margin-bottom:-1px;}
+  .stickmark{height:1px;margin-bottom:-1px;}
+  /* 間違えた問題: スクロール中は入力欄を詰めて表示 */
+  .stick.stuck .logform{display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px;border-radius:12px;}
+  .stick.stuck .logform > .row3,.stick.stuck .logform > .fnote,.stick.stuck .logform > .chips{grid-column:1 / -1;}
+  .stick.stuck .logform .row3{grid-template-columns:2fr 1fr 1fr;gap:6px;}
+  .stick.stuck .logform .row3 #lBook{grid-column:auto;}
+  .stick.stuck .logform label,.stick.stuck .logform .fhint{display:none;}
+  .stick.stuck .logform input,.stick.stuck .logform textarea{padding:8px 10px;}
+  .stick.stuck #lNote{min-height:0;height:38px;resize:none;}
+  .stick.stuck .logform > .fword{order:1;}
+  .stick.stuck .logform > .acts{order:2;align-self:center;flex-wrap:nowrap;}
+  .stick.stuck .logform > .chips{order:3;}
+  .stick.stuck .logform .acts .primary{padding:8px 12px;}
+  .stick.stuck .logtools{margin-top:8px;flex-wrap:nowrap;gap:6px;}
+  .stick.stuck .logtools select{flex:0 0 34%;padding:8px;}
+  .stick.stuck .logtools .ghost{padding:7px 10px;font-size:.8rem;}
+  .stick.stuck #lq{flex:1 1 auto;padding:8px 10px;}
 
   /* ---- A–Z ジャンプ ---- */
   #az{display:flex;gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:10px 0 8px;margin-top:4px;}
@@ -181,6 +197,8 @@
   .logtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px;}
   .logtools select{font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 160px;min-width:0;}
   .logtools .ghost{white-space:nowrap;}
+  .logtools #lq{flex:1 1 100%;min-width:0;}
+  #logStick{padding-bottom:10px;}
   .book h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:16px 4px 6px;}
   .book h2 .n{font-weight:400;margin-left:6px;}
   .entry{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;}
@@ -217,7 +235,7 @@
     <h1>わたしの単語帳</h1>
     <span id="countWords"></span>
   </header>
-  <div id="stickMark" aria-hidden="true"></div>
+  <div id="stickMark" class="stickmark" aria-hidden="true"></div>
   <div class="stick" id="stick">
   <form class="add" id="addForm" autocomplete="off">
     <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
@@ -256,6 +274,8 @@
     <h1>わたしの単語帳</h1>
     <span id="countLog"></span>
   </header>
+  <div id="logStickMark" class="stickmark" aria-hidden="true"></div>
+  <div class="stick" id="logStick">
     <form class="logform" id="logForm" autocomplete="off">
       <div class="row3">
         <div id="lBook"><label for="lBookIn">テキスト・問題集</label><input id="lBookIn" list="bookList" placeholder="例: 公式TOEIC問題集 10"></div>
@@ -263,13 +283,13 @@
         <div><label for="lNum">問題番号</label><input id="lNum" placeholder="142"></div>
       </div>
       <datalist id="bookList"></datalist>
-      <div><label for="lNote">備考・メモ</label><textarea id="lNote" placeholder="例: 主語は the number(単数)なので is leased が正解"></textarea></div>
-      <div>
+      <div class="fnote"><label for="lNote">備考・メモ</label><textarea id="lNote" placeholder="例: 主語は the number(単数)なので is leased が正解"></textarea></div>
+      <div class="fword">
         <label for="lWordIn">関連する単語(Enterで追加)</label>
         <div class="row"><input id="lWordIn" placeholder="例: lease" autocapitalize="off" spellcheck="false" enterkeyhint="enter"><button class="ghost" id="lWordAdd" type="button">追加</button></div>
       </div>
       <div class="chips" id="lChips"></div>
-      <p class="hint" style="margin:0">青い単語は単語帳に登録済みでタップすると飛べます。点線の単語はタップすると単語帳に登録できます。</p>
+      <p class="hint fhint" style="margin:0">青い単語は単語帳に登録済みでタップすると飛べます。点線の単語はタップすると単語帳に登録できます。</p>
       <div class="acts">
         <button class="ghost del" id="lDel" type="button" hidden>削除</button>
         <button class="ghost" id="lCancel" type="button" hidden>キャンセル</button>
@@ -280,8 +300,9 @@
     <div class="logtools">
       <select id="lFilter" aria-label="テキストで絞り込み"></select>
       <button class="ghost" id="lTodo" type="button">未復習だけ</button>
+      <input id="lq" type="search" placeholder="メモや単語で検索" aria-label="間違えた問題を検索">
     </div>
-    <input id="lq" type="search" placeholder="メモや単語で検索" aria-label="間違えた問題を検索" style="margin-top:8px">
+  </div>
     <div id="logList"></div>
     <p id="logEmpty" hidden></p>
   </div></section>
@@ -753,7 +774,8 @@ function editLog(r){
   draftWords=r.words.slice(); renderChips();
   $('logForm').classList.add('editing');
   $('lSave').textContent='更新する'; $('lDel').hidden=false; $('lCancel').hidden=false;
-  $('logForm').scrollIntoView({behavior:'smooth',block:'start'});
+  // 固定表示中はフォームが見えているので、一覧の場所はそのまま
+  if(!$('logStick').classList.contains('stuck')) $('logForm').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 $('logForm').addEventListener('submit',e=>{
   e.preventDefault();
@@ -828,16 +850,22 @@ function renderLog(){
 }
 
 /* ================= 追加欄・検索欄の固定 ================= */
-(()=>{
-  const stick=$('stick'), mark=$('stickMark');
-  // 固定ブロックの直前の目印が画面外に出たら「スクロール中」の詰めた表示にする
-  // 詰めた表示では入力欄が狭いので、案内文も短くする
-  const PH=[[fWord,'英語(例: Competent)','英語'],[fMean,'意味(例: 有能)','意味'],[$('q'),'検索(英語・日本語どちらでも)','検索']];
+/* 固定ブロックの直前の目印が画面外に出たら「スクロール中」の詰めた表示にする。
+   詰めた表示では入力欄が狭いので、案内文も短くする */
+function pinBlock(stick,mark,root,PH){
   new IntersectionObserver(([e])=>{
     const stuck=!e.isIntersecting && e.rootBounds && e.boundingClientRect.top<e.rootBounds.top;
     stick.classList.toggle('stuck',stuck);
     for(const [el,full,short] of PH) el.placeholder=stuck?short:full;
-  },{root:$('tabWords')}).observe(mark);
+  },{root}).observe(mark);
+}
+pinBlock($('logStick'),$('logStickMark'),$('tabLog'),[
+  [$('lBookIn'),'例: 公式TOEIC問題集 10','テキスト'],[$('lPage'),'263','p.'],[$('lNum'),'142','No.'],
+  [$('lNote'),'例: 主語は the number(単数)なので is leased が正解','メモ'],[$('lWordIn'),'例: lease','単語'],[$('lq'),'メモや単語で検索','検索']]);
+(()=>{
+  const stick=$('stick');
+  pinBlock(stick,$('stickMark'),$('tabWords'),
+    [[fWord,'英語(例: Competent)','英語'],[fMean,'意味(例: 有能)','意味'],[$('q'),'検索(英語・日本語どちらでも)','検索']]);
   // 見出しへジャンプしたとき固定ブロックに隠れないよう高さを共有
   new ResizeObserver(()=>{
     document.documentElement.style.setProperty('--stick-h',stick.offsetHeight+'px');
