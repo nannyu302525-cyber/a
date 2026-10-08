@@ -95,6 +95,17 @@
   .stick.stuck .seg::-webkit-scrollbar{display:none;}
   .stick.stuck .seg .ghost{padding:7px 10px;font-size:.8rem;}
   .stickmark{height:1px;margin-bottom:-1px;}
+  /* 入力欄・検索欄の出し入れ(高さをなめらかに変える) */
+  .fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .26s cubic-bezier(.2,.8,.2,1);}
+  .fold-inner{min-height:0;overflow:hidden;}
+  .stick.folded .fold{grid-template-rows:0fr;}
+  @media (prefers-reduced-motion:reduce){ .fold{transition:none;} }
+  .foldbtn{display:flex;align-items:center;justify-content:center;gap:4px;margin:0 auto;background:transparent;color:var(--sub);
+    font-size:.75rem;font-weight:700;padding:4px 14px 6px;border-radius:0 0 10px 10px;}
+  .foldbtn:hover{color:var(--ink);}
+  .foldbtn svg{width:14px;height:14px;transition:transform .26s;}
+  .stick.folded .foldbtn svg{transform:rotate(180deg);}
+  .stick.folded .foldbtn{color:var(--accent);}
   /* 間違えた問題: スクロール中は入力欄を詰めて表示 */
   .stick.stuck .logform{display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px;border-radius:12px;}
   .stick.stuck .logform > .row3,.stick.stuck .logform > .fnote,.stick.stuck .logform > .chips{grid-column:1 / -1;}
@@ -198,7 +209,7 @@
   .logtools select{font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 160px;min-width:0;}
   .logtools .ghost{white-space:nowrap;}
   .logtools #lq{flex:1 1 100%;min-width:0;}
-  #logStick{padding-bottom:10px;}
+  
   .book h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:16px 4px 6px;}
   .book h2 .n{font-weight:400;margin-left:6px;}
   .entry{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;}
@@ -237,6 +248,7 @@
   </header>
   <div id="stickMark" class="stickmark" aria-hidden="true"></div>
   <div class="stick" id="stick">
+  <div class="fold"><div class="fold-inner" id="foldWords">
   <form class="add" id="addForm" autocomplete="off">
     <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
     <div class="row">
@@ -256,8 +268,10 @@
       <button class="ghost" id="hideBtn" type="button" title="意味をかくして復習">意味をかくす</button>
     </div>
   </div>
+  </div></div>
 
   <nav id="az" aria-label="頭文字へジャンプ"></nav>
+  <button class="foldbtn" type="button" data-fold="foldWords" aria-controls="foldWords" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span>しまう</span></button>
   </div>
   <div id="list"></div>
   <p id="empty" hidden></p>
@@ -276,6 +290,7 @@
   </header>
   <div id="logStickMark" class="stickmark" aria-hidden="true"></div>
   <div class="stick" id="logStick">
+  <div class="fold"><div class="fold-inner" id="foldLog">
     <form class="logform" id="logForm" autocomplete="off">
       <div class="row3">
         <div id="lBook"><label for="lBookIn">テキスト・問題集</label><input id="lBookIn" list="bookList" placeholder="例: 公式TOEIC問題集 10"></div>
@@ -302,6 +317,8 @@
       <button class="ghost" id="lTodo" type="button">未復習だけ</button>
       <input id="lq" type="search" placeholder="メモや単語で検索" aria-label="間違えた問題を検索">
     </div>
+  </div></div>
+  <button class="foldbtn" type="button" data-fold="foldLog" aria-controls="foldLog" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span>しまう</span></button>
   </div>
     <div id="logList"></div>
     <p id="logEmpty" hidden></p>
@@ -722,6 +739,7 @@ function jumpToWord(w){
 /* 未登録の単語を単語帳の入力欄へ */
 function prefillWord(text){
   showTab('words',false);
+  setFold('foldWords',false);
   fWord.value=text; fMean.value=''; updateExists();
   $('tabWords').scrollTo({top:0,behavior:'smooth'});
   fMean.focus();
@@ -770,6 +788,7 @@ function resetLogForm(keepBook){
 }
 function editLog(r){
   editingLog=r;
+  setFold('foldLog',false);
   $('lBookIn').value=r.book; $('lPage').value=r.page; $('lNum').value=r.num; $('lNote').value=r.note;
   draftWords=r.words.slice(); renderChips();
   $('logForm').classList.add('editing');
@@ -871,6 +890,24 @@ pinBlock($('logStick'),$('logStickMark'),$('tabLog'),[
     document.documentElement.style.setProperty('--stick-h',stick.offsetHeight+'px');
   }).observe(stick);
 })();
+
+/* ================= 入力欄・検索欄の出し入れ ================= */
+const FOLD_KEY='vocab-fold';
+let foldState={};
+try{ foldState=JSON.parse(localStorage.getItem(FOLD_KEY)||'{}')||{}; }catch(e){}
+function setFold(id,folded){
+  const inner=$(id), stick=inner.closest('.stick'), btn=stick.querySelector('.foldbtn');
+  stick.classList.toggle('folded',folded);
+  inner.inert=folded;                                   // しまっている間は入力欄にフォーカスが行かないように
+  btn.setAttribute('aria-expanded',!folded);
+  btn.querySelector('span').textContent=folded?(id==='foldWords'?'追加・検索を出す':'入力・検索を出す'):'しまう';
+  foldState[id]=folded;
+  try{ localStorage.setItem(FOLD_KEY,JSON.stringify(foldState)); }catch(e){}
+}
+document.querySelectorAll('.foldbtn').forEach(b=>{
+  b.addEventListener('click',()=>setFold(b.dataset.fold,!b.closest('.stick').classList.contains('folded')));
+  if(foldState[b.dataset.fold]) setFold(b.dataset.fold,true);
+});
 
 /* ================= 一番上へ戻る ================= */
 let toTopShown=false;
