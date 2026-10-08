@@ -159,6 +159,15 @@
   .entry .note{white-space:pre-wrap;word-break:break-word;font-size:.92rem;}
   .entry .donebtn{font-size:.78rem;padding:5px 10px;border-radius:16px;white-space:nowrap;}
   .entry .donebtn.on{background:var(--ok-bg);color:var(--ok);border-color:transparent;}
+  /* ---- 一番上へ戻るボタン ---- */
+  #toTop{position:fixed;right:calc(16px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;
+    width:48px;height:48px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;
+    opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s,transform .2s;}
+  #toTop.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  #toTop:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
+  #toTop svg{width:22px;height:22px;}
+  @media (prefers-reduced-motion:reduce){ #toTop{transition:none;} }
   #logEmpty{color:var(--sub);text-align:center;padding:32px 0;font-size:.9rem;}
 </style>
 </head>
@@ -268,6 +277,9 @@
 </dialog>
 
 <div id="toast" role="status"></div>
+<button id="toTop" type="button" aria-label="一番上へ戻る" title="一番上へ" tabindex="-1">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
 
 <script>
 /* ================= 保存 ================= */
@@ -754,6 +766,23 @@ function renderLog(){
     list.appendChild(sec);
   }
 }
+
+/* ================= 一番上へ戻る ================= */
+(()=>{
+  const btn=$('toTop');
+  let shown=false;
+  const update=()=>{
+    const s=window.scrollY>window.innerHeight*0.6;   // 画面の6割ほど下がったら出す
+    if(s===shown) return;
+    shown=s; btn.classList.toggle('show',s); btn.tabIndex=s?0:-1;
+  };
+  window.addEventListener('scroll',update,{passive:true});
+  btn.addEventListener('click',()=>{
+    const smooth=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({top:0,behavior:smooth?'smooth':'auto'});
+  });
+  update();
+})();
 
 /* ================= 初期データ(最初に書き溜めていた単語) ================= */
 function seed(){
