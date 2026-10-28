@@ -161,6 +161,20 @@
   @keyframes flash{from{background:var(--hit);}to{background:var(--card);}}
   mark{background:var(--hit);color:inherit;border-radius:3px;}
   #empty{color:var(--sub);text-align:center;padding:40px 0;font-size:.9rem;}
+  /* 検索したときの「未登録なら追加」「似ている単語」 */
+  #qPanel{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+  #qPanel[hidden]{display:none;}
+  .qadd{background:var(--card);border:1px dashed var(--accent);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+  .qadd .row{display:flex;gap:8px;}
+  .qadd input{flex:1;min-width:0;}
+  .qlabel{font-size:.8rem;color:var(--sub);}
+  .qlabel b{color:var(--ink);font-size:.95rem;}
+  .simlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);margin-top:4px;}
+  .simlist button{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);color:var(--ink);
+    padding:9px 12px;border-top:1px solid var(--line);border-radius:0;}
+  .simlist button:first-child{border-top:none;}
+  .simlist .w{flex:0 0 42%;font-weight:600;word-break:break-word;}
+  .simlist .m{flex:1;min-width:0;color:var(--sub);word-break:break-word;}
   @media (max-width:420px){ .item .body{flex-direction:column;gap:2px;} .item .w{flex:none;} }
 
   .menu{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:28px;}
@@ -273,6 +287,19 @@
 
   <nav id="az" aria-label="頭文字へジャンプ"></nav>
   <button class="foldbtn" type="button" data-fold="foldWords" aria-controls="foldWords" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span>しまう</span></button>
+  </div>
+  <div id="qPanel" hidden>
+    <div class="qadd" id="qAdd" hidden>
+      <p class="qlabel"><b id="qAddWord"></b> は未登録です。その場で追加できます</p>
+      <div class="row">
+        <input id="qMean" placeholder="意味を入れて追加" enterkeyhint="done" aria-label="未登録の単語の意味">
+        <button class="primary" id="qAddBtn" type="button">追加</button>
+      </div>
+    </div>
+    <div class="qsim" id="qSim" hidden>
+      <p class="qlabel">似ている単語</p>
+      <div class="simlist" id="qSimList"></div>
+    </div>
   </div>
   <div id="list"></div>
   <p id="empty" hidden></p>
@@ -503,7 +530,74 @@ function render(){
     }
     list.appendChild(sec);
   }
+  renderQPanel(q,shown);
 }
+
+/* ================= 検索: 似ている単語と、未登録ならその場で追加 ================= */
+function lev(a,b,max){
+  // 編集距離(max を超えたら打ち切り)
+  if(Math.abs(a.length-b.length)>max) return max+1;
+  let prev=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){
+    const cur=[i]; let best=i;
+    for(let j=1;j<=b.length;j++){
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      if(cur[j]<best) best=cur[j];
+    }
+    if(best>max) return max+1;
+    prev=cur;
+  }
+  return prev[b.length];
+}
+/* 0〜1 の似ている度合い。つづり違い(alocate→allocate)や語形違い(allocation→allocate)を拾う */
+function similarity(q,key){
+  let score=0;
+  for(const t of [key,...key.split(' ')]){
+    if(!t) continue;
+    const tol=q.length<=7?1:q.length<=11?2:3;   // 短い語ほど厳しく(lease と case を似ているとしない)
+    const d=lev(q,t,tol);
+    if(d<=tol) score=Math.max(score,1-d/Math.max(q.length,t.length));
+    let cp=0; while(cp<q.length&&cp<t.length&&q[cp]===t[cp]) cp++;
+    if(cp>=4 && cp>=0.6*Math.min(q.length,t.length)) score=Math.max(score,0.5+0.4*cp/Math.max(q.length,t.length));
+  }
+  return score;
+}
+function renderQPanel(q,shown){
+  const panel=$('qPanel');
+  const qk=looseKey(q);
+  if(!qk || !/[a-z]/.test(qk)){ panel.hidden=true; return; }   // 日本語で意味を検索しているときは出さない
+  const registered=lookupWord(q);
+  $('qAdd').hidden=!!registered;
+  $('qAddWord').textContent='「'+q+'」';
+  const ids=new Set(shown.map(w=>w.id));
+  const sims=words.filter(w=>!ids.has(w.id))
+    .map(w=>({w,s:similarity(qk,looseKey(w.word))}))
+    .filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,8);
+  $('qSim').hidden=!sims.length;
+  const box=$('qSimList'); box.innerHTML='';
+  for(const {w} of sims){
+    const b=document.createElement('button'); b.type='button';
+    b.innerHTML='<span class="w">'+esc(w.word)+'</span><span class="m">'+esc(w.meaning||'(意味なし)')+'</span>';
+    b.addEventListener('click',()=>{ $('q').value=''; render(); flashItem(w.id); });
+    box.appendChild(b);
+  }
+  panel.hidden=$('qAdd').hidden && !sims.length;
+  // 追加欄を出しているときは「一致なし」の文は重ねて出さない
+  if(!$('qAdd').hidden) $('empty').hidden=true;
+}
+function addFromSearch(){
+  const word=$('q').value.trim(); if(!word) return;
+  const {item,merged}=upsert(word,$('qMean').value.trim());
+  save(); $('qMean').value='';
+  render(); flashItem(item.id);
+  toast(merged?'「'+item.word+'」は登録済みなので意味を追記しました':'「'+item.word+'」を追加しました');
+}
+$('qAddBtn').addEventListener('click',addFromSearch);
+$('qMean').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing){ e.preventDefault(); addFromSearch(); } });
+// 検索欄で Enter: 未登録なら意味の欄へ
+$('q').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.isComposing&&!$('qAdd').hidden&&!$('qPanel').hidden){ e.preventDefault(); $('qMean').focus(); }
+});
 
 /* 〇△× をワンタッチで記録(同じ印をもう一度押すと解除) */
 const MARK_LABEL={o:'〇 知ってる',d:'△ 微妙',x:'× 覚えられない','':'未評価'};
