@@ -39,7 +39,7 @@
   .pager{flex:1 1 auto;min-height:0;display:flex;gap:28px;overflow-x:auto;overflow-y:hidden;background:var(--desk);
     scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;}
   .pager::-webkit-scrollbar{display:none;}
-  .pane{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;background:var(--bg);
+  .pane{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;overflow-anchor:none;background:var(--bg);
     box-shadow:0 0 22px rgba(0,0,0,.35);
     scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;}
   .pane .inner{max-width:640px;margin:0 auto;padding:16px 16px 80px;}
@@ -49,14 +49,12 @@
 
   /* ---- 入力カード ---- */
   .add{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;}
-  .add .row{display:flex;gap:8px;}
-  .add input{flex:1;min-width:0;}
   input,textarea{
     font:inherit;font-size:16px;color:var(--ink);background:var(--bg);
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;
   }
   input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;}
-  #fWord{font-weight:600;margin-bottom:8px;}
+  #fWord{font-weight:600;}
   button{font:inherit;cursor:pointer;border:none;border-radius:10px;}
   .primary{background:var(--accent);color:var(--accent-ink);font-weight:700;padding:10px 18px;white-space:nowrap;}
   .primary:disabled{opacity:.4;cursor:default;}
@@ -74,8 +72,7 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   /* ---- 検索と表示切替 ---- */
-  .tools{display:flex;gap:8px;align-items:center;margin:18px 0 0;flex-wrap:wrap;}
-  .tools .sw-q{flex:1 1 200px;}
+
   /* 検索欄の × ボタン(入力があるときだけ表示) */
   .sw{position:relative;display:block;min-width:0;}
   .sw input{padding-right:40px;}
@@ -85,27 +82,56 @@
   .clr[hidden]{display:none;}
   .clr:hover{color:var(--ink);}
   .clr svg{width:14px;height:14px;}
-  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg{display:flex;gap:6px;}
   .seg .ghost{white-space:nowrap;}
 
-  /* ---- 追加欄・検索欄・A–Z を画面上に固定 ---- */
+  /* ---- 追加欄・検索欄・A–Z を画面上に固定 ----
+     --t はスクロール量に合わせて 0(広い表示)→ 1(詰めた表示)へ連続的に変わる。
+     大きさ・余白・位置はすべて --t から計算するので、スクロールにつれて少しずつ縮む */
   .stick{position:sticky;top:0;z-index:5;background:var(--bg);
-    margin-inline:-16px;padding:0 16px;border-bottom:1px solid var(--line);}
-  /* スクロール中は1行にまとめて場所を取らないように */
-  .stick.stuck{padding-top:8px;}
-  .stick.stuck .add{display:flex;gap:6px;padding:8px;border-radius:12px;}
-  .stick.stuck .add .row{display:contents;}
-  .stick.stuck #fWord{margin-bottom:0;flex:1 1 0;}
-  .stick.stuck #fMean{flex:1 1 0;}
-  .stick.stuck .add .primary{padding:8px 12px;}
-  .stick.stuck .add .hint,.stick.stuck #exists{display:none;}
-  .stick.stuck .tools{margin-top:8px;flex-wrap:nowrap;gap:6px;}
-  .stick.stuck .tools .sw-q{flex:0 0 44%;}
-  .stick.stuck .tools #q{padding:8px 36px 8px 10px;}
-  .stick.stuck .clr{width:24px;height:24px;right:5px;}
-  .stick.stuck .seg{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;}
-  .stick.stuck .seg::-webkit-scrollbar{display:none;}
-  .stick.stuck .seg .ghost{padding:7px 10px;font-size:.8rem;}
+    margin-inline:-16px;padding:calc(8px * var(--t)) 16px 0;border-bottom:1px solid var(--line);
+    --t:0; --h:calc(46px - 6px * var(--t)); --g:calc(8px - 2px * var(--t));}
+  .stickspacer{height:0;}
+  .stick input,.stick select{height:var(--h);padding-block:0;}
+  .collapse{display:block;overflow:hidden;max-height:calc((1 - var(--t)) * var(--full,40px));opacity:calc(1 - var(--t) * 2);}
+  .stick .add,.stick .logform{padding:calc(14px - 6px * var(--t));border-radius:calc(14px - 2px * var(--t));}
+  .clr{width:calc(28px - 4px * var(--t,0));height:calc(28px - 4px * var(--t,0));}
+
+  /* 単語の追加: 2段(英語 / 意味+追加)から1段(英語|意味|追加)へ、欄がすべるように移動 */
+  .addgrid{position:relative;--bw:64px;height:calc(var(--h) + (1 - var(--t)) * (var(--h) + var(--g)));}
+  .addgrid > *{position:absolute;margin:0;height:var(--h);}
+  #fWord{left:0;top:0;width:calc((1 - var(--t)) * 100% + var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2));}
+  #fMean{left:calc(var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2 + var(--g)));top:calc((1 - var(--t)) * (var(--h) + var(--g)));
+    width:calc((1 - var(--t)) * (100% - var(--bw) - var(--g)) + var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2));}
+  #addBtn{right:0;top:calc((1 - var(--t)) * (var(--h) + var(--g)));width:var(--bw);padding:0;}
+  .add .extra #exists{margin-top:8px;}
+
+  /* 検索と並び替え: 2段(検索 / 並び替え)から1段(検索|並び替え)へ */
+  .tools{position:relative;--sh:34px;margin-top:calc(18px - 10px * var(--t));
+    height:calc(var(--h) + (1 - var(--t)) * (var(--sh) + var(--g)));}
+  .tools > .sw-q{position:absolute;left:0;top:0;width:calc((1 - var(--t)) * 100% + var(--t) * 44%);}
+  .tools #q{padding-right:calc(40px - 4px * var(--t));}
+  .tools > .seg{position:absolute;align-items:center;height:var(--sh);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;
+    left:calc(var(--t) * (44% + var(--g)));width:calc((1 - var(--t)) * 100% + var(--t) * (56% - var(--g)));
+    top:calc((1 - var(--t)) * (var(--h) + var(--g)) + var(--t) * ((var(--h) - var(--sh)) / 2));}
+  .tools > .seg::-webkit-scrollbar{display:none;}
+  .tools .seg .ghost{height:var(--sh);padding:0 calc(12px - 2px * var(--t));font-size:.82rem;}
+
+  /* 間違えた問題: 見出し・説明は少しずつ消え、欄は少しずつ低くなる */
+  .stick .logform{gap:var(--g);}
+  .stick .logform label.collapse{margin-bottom:calc(3px * (1 - var(--t)));}
+  .stick #lNote{height:calc(70px - 32px * var(--t));min-height:0;padding-block:calc(10px - 2px * var(--t));resize:none;}
+  .stick .logform .row .ghost,.stick .logform .acts button{height:var(--h);padding-block:0;}
+  /* 絞り込み: 2段(絞り込み+未復習 / 検索)から1段へ */
+  .logtools{position:relative;display:block;--tw:96px;margin-top:calc(18px - 10px * var(--t));
+    height:calc(var(--h) + (1 - var(--t)) * (var(--h) + var(--g)));}
+  .logtools > select{position:absolute;left:0;top:0;padding:0 10px;
+    width:calc((1 - var(--t)) * (100% - var(--tw) - var(--g)) + var(--t) * 34%);}
+  .logtools > #lTodo{position:absolute;top:calc((var(--h) - 34px) / 2);height:34px;width:var(--tw);padding:0 8px;
+    left:calc((1 - var(--t)) * (100% - var(--tw)) + var(--t) * (34% + var(--g)));}
+  .logtools > .sw-lq{position:absolute;top:calc((1 - var(--t)) * (var(--h) + var(--g)));
+    left:calc(var(--t) * (34% + var(--tw) + 2 * var(--g)));width:calc((1 - var(--t)) * 100% + var(--t) * (66% - var(--tw) - 2 * var(--g)));}
+  #lq{padding-right:calc(40px - 4px * var(--t));}
   .stickmark{height:1px;margin-bottom:-1px;}
   /* 入力欄・検索欄の出し入れ(高さをなめらかに変える) */
   .fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .26s cubic-bezier(.2,.8,.2,1);}
@@ -118,23 +144,6 @@
   .foldbtn svg{width:14px;height:14px;transition:transform .26s;}
   .stick.folded .foldbtn svg{transform:rotate(180deg);}
   .stick.folded .foldbtn{color:var(--accent);}
-  /* 間違えた問題: スクロール中は入力欄を詰めて表示 */
-  .stick.stuck .logform{display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px;border-radius:12px;}
-  .stick.stuck .logform > .row3,.stick.stuck .logform > .fnote,.stick.stuck .logform > .chips{grid-column:1 / -1;}
-  .stick.stuck .logform .row3{grid-template-columns:2fr 1fr 1fr;gap:6px;}
-  .stick.stuck .logform .row3 #lBook{grid-column:auto;}
-  .stick.stuck .logform label,.stick.stuck .logform .fhint{display:none;}
-  .stick.stuck .logform input,.stick.stuck .logform textarea{padding:8px 10px;}
-  .stick.stuck #lNote{min-height:0;height:38px;resize:none;}
-  .stick.stuck .logform > .fword{order:1;}
-  .stick.stuck .logform > .acts{order:2;align-self:center;flex-wrap:nowrap;}
-  .stick.stuck .logform > .chips{order:3;}
-  .stick.stuck .logform .acts .primary{padding:8px 12px;}
-  .stick.stuck .logtools{margin-top:8px;flex-wrap:nowrap;gap:6px;}
-  .stick.stuck .logtools select{flex:0 0 34%;padding:8px;}
-  .stick.stuck .logtools .ghost{padding:7px 10px;font-size:.8rem;}
-  .stick.stuck .sw-lq{flex:1 1 auto;}
-  .stick.stuck #lq{padding:8px 36px 8px 10px;}
 
   /* ---- A–Z ジャンプ ---- */
   #az{display:flex;gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:10px 0 8px;margin-top:4px;}
@@ -214,9 +223,15 @@
     box-shadow:0 1px 2px rgba(0,0,0,.08);}
 
   /* ---- 間違えた問題 ---- */
-  .logform{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
-  .logform .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;}
-  @media (max-width:420px){ .logform .row3{grid-template-columns:1fr 1fr;} .logform .row3 #lBook{grid-column:1 / -1;} }
+  .logform{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;
+    display:grid;grid-template-columns:1fr auto;gap:8px;}
+  .logform > .row3,.logform > .fnote,.logform > .chips,.logform > .fhint{grid-column:1 / -1;}
+  .logform > .fword{order:1;min-width:0;}
+  .logform > .acts{order:2;align-self:end;flex-wrap:nowrap;}
+  .logform > .chips{order:3;}
+  .logform > .fhint{order:4;}
+  .logform .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:var(--g,8px);}
+  .logform .row3 > div{min-width:0;}
   .logform .row{display:flex;gap:8px;}
   .logform .row .ghost{white-space:nowrap;}
   .logform label{font-size:.75rem;color:var(--sub);display:block;margin-bottom:3px;}
@@ -232,10 +247,8 @@
   .chip.unreg{border-style:dashed;color:var(--sub);}
   .chip .x{background:transparent;color:var(--sub);padding:0 0 0 2px;font-size:.9rem;line-height:1;}
   .chip small{font-size:.72rem;color:var(--sub);}
-  .logtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px;}
-  .logtools select{font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 160px;min-width:0;}
+  .logtools select{font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;min-width:0;}
   .logtools .ghost{white-space:nowrap;}
-  .logtools .sw-lq{flex:1 1 100%;}
   
   .book h2{font-size:.85rem;color:var(--sub);font-weight:700;padding:16px 4px 6px;}
   .book h2 .n{font-weight:400;margin-left:6px;}
@@ -277,13 +290,15 @@
   <div class="stick" id="stick">
   <div class="fold"><div class="fold-inner" id="foldWords">
   <form class="add" id="addForm" autocomplete="off">
-    <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
-    <div class="row">
+    <div class="addgrid">
+      <input id="fWord" placeholder="英語(例: Competent)" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="英語">
       <input id="fMean" placeholder="意味(例: 有能)" enterkeyhint="done" aria-label="意味">
       <button class="primary" id="addBtn" type="submit" disabled>追加</button>
     </div>
-    <div id="exists" aria-live="polite"></div>
-    <p class="hint">「Competent…有能」のように1行で入力してもOK。英語欄で Enter を押すと意味欄に移ります。</p>
+    <div class="collapse extra">
+      <div id="exists" aria-live="polite"></div>
+      <p class="hint">「Competent…有能」のように1行で入力してもOK。英語欄で Enter を押すと意味欄に移ります。</p>
+    </div>
   </form>
 
   <div class="tools">
@@ -300,6 +315,7 @@
   <nav id="az" aria-label="頭文字へジャンプ"></nav>
   <button class="foldbtn" type="button" data-fold="foldWords" aria-controls="foldWords" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span>しまう</span></button>
   </div>
+  <div class="stickspacer" aria-hidden="true"></div>
   <div id="qPanel" hidden>
     <div class="qadd" id="qAdd" hidden>
       <p class="qlabel"><b id="qAddWord"></b> は未登録です。その場で追加できます</p>
@@ -333,18 +349,18 @@
   <div class="fold"><div class="fold-inner" id="foldLog">
     <form class="logform" id="logForm" autocomplete="off">
       <div class="row3">
-        <div id="lBook"><label for="lBookIn">テキスト・問題集</label><input id="lBookIn" list="bookList" placeholder="例: 公式TOEIC問題集 10"></div>
-        <div><label for="lPage">ページ</label><input id="lPage" inputmode="numeric" placeholder="263"></div>
-        <div><label for="lNum">問題番号</label><input id="lNum" placeholder="142"></div>
+        <div id="lBook"><label class="collapse" for="lBookIn">テキスト・問題集</label><input id="lBookIn" list="bookList" placeholder="例: 公式TOEIC問題集 10"></div>
+        <div><label class="collapse" for="lPage">ページ</label><input id="lPage" inputmode="numeric" placeholder="263"></div>
+        <div><label class="collapse" for="lNum">問題番号</label><input id="lNum" placeholder="142"></div>
       </div>
       <datalist id="bookList"></datalist>
-      <div class="fnote"><label for="lNote">備考・メモ</label><textarea id="lNote" placeholder="例: 主語は the number(単数)なので is leased が正解"></textarea></div>
+      <div class="fnote"><label class="collapse" for="lNote">備考・メモ</label><textarea id="lNote" placeholder="例: 主語は the number(単数)なので is leased が正解"></textarea></div>
       <div class="fword">
-        <label for="lWordIn">関連する単語(Enterで追加)</label>
+        <label class="collapse" for="lWordIn">関連する単語(Enterで追加)</label>
         <div class="row"><input id="lWordIn" placeholder="例: lease" autocapitalize="off" spellcheck="false" enterkeyhint="enter"><button class="ghost" id="lWordAdd" type="button">追加</button></div>
       </div>
       <div class="chips" id="lChips"></div>
-      <p class="hint fhint" style="margin:0">青い単語は単語帳に登録済みでタップすると飛べます。点線の単語はタップすると単語帳に登録できます。</p>
+      <p class="hint fhint collapse">青い単語は単語帳に登録済みでタップすると飛べます。点線の単語はタップすると単語帳に登録できます。</p>
       <div class="acts">
         <button class="ghost del" id="lDel" type="button" hidden>削除</button>
         <button class="ghost" id="lCancel" type="button" hidden>キャンセル</button>
@@ -360,6 +376,7 @@
   </div></div>
   <button class="foldbtn" type="button" data-fold="foldLog" aria-controls="foldLog" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span>しまう</span></button>
   </div>
+  <div class="stickspacer" aria-hidden="true"></div>
     <div id="logList"></div>
     <p id="logEmpty" hidden></p>
   </div></section>
@@ -901,8 +918,7 @@ function editLog(r){
   draftWords=r.words.slice(); renderChips();
   $('logForm').classList.add('editing');
   $('lSave').textContent='更新する'; $('lDel').hidden=false; $('lCancel').hidden=false;
-  // 固定表示中はフォームが見えているので、一覧の場所はそのまま
-  if(!$('logStick').classList.contains('stuck')) $('logForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+  // フォームは画面上に固定されていて常に見えているので、一覧の場所はそのまま
 }
 $('logForm').addEventListener('submit',e=>{
   e.preventDefault();
@@ -977,14 +993,39 @@ function renderLog(){
 }
 
 /* ================= 追加欄・検索欄の固定 ================= */
-/* 固定ブロックの直前の目印が画面外に出たら「スクロール中」の詰めた表示にする。
-   詰めた表示では入力欄が狭いので、案内文も短くする */
+/* 固定ブロックをスクロールに合わせて少しずつ縮める。
+   縮んだ分だけ下にすき間(stickspacer)を足すので、一覧は指の動きとぴったり同じ速さで動く */
 function pinBlock(stick,mark,root,PH){
-  new IntersectionObserver(([e])=>{
-    const stuck=!e.isIntersecting && e.rootBounds && e.boundingClientRect.top<e.rootBounds.top;
-    stick.classList.toggle('stuck',stuck);
-    for(const [el,full,short] of PH) el.placeholder=stuck?short:full;
-  },{root}).observe(mark);
+  const spacer=stick.nextElementSibling;
+  let hExp=0, range=1, raf=0, stuck=false;
+  const setT=t=>stick.style.setProperty('--t',t);
+  function measure(){
+    const cur=stick.style.getPropertyValue('--t')||'0';
+    setT(0);
+    // 消えていく部分の本来の高さを覚えておく(縮み方を一定にするため)
+    stick.querySelectorAll('.collapse').forEach(el=>{ el.style.setProperty('--full',el.scrollHeight+'px'); });
+    hExp=stick.offsetHeight;
+    setT(1); range=Math.max(1,hExp-stick.offsetHeight);
+    setT(cur);
+    update();
+  }
+  function update(){
+    raf=0;
+    const markTop=mark.getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop;
+    const t=Math.min(1,Math.max(0,(root.scrollTop-markTop)/range));
+    setT(t.toFixed(4));
+    spacer.style.height=(t*range).toFixed(1)+'px';
+    const s=t>0.5;                                   // 欄が狭くなったら案内文を短く
+    if(s!==stuck){ stuck=s; for(const [el,full,short] of PH) el.placeholder=s?short:full; }
+  }
+  root.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(update); },{passive:true});
+  let mraf=0; const remeasure=()=>{ if(!mraf) mraf=requestAnimationFrame(()=>{ mraf=0; measure(); }); };
+  window.addEventListener('resize',remeasure);
+  stick.addEventListener('transitionend',e=>{ if(e.target.classList.contains('fold')) remeasure(); });
+  // 中身の高さが変わる部分(登録済みの表示、単語チップなど)が変わったら測り直す
+  const ro=new ResizeObserver(remeasure);
+  stick.querySelectorAll('#exists,.chips').forEach(el=>ro.observe(el));
+  measure();
 }
 pinBlock($('logStick'),$('logStickMark'),$('tabLog'),[
   [$('lBookIn'),'例: 公式TOEIC問題集 10','テキスト'],[$('lPage'),'263','p.'],[$('lNum'),'142','No.'],
