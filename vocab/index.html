@@ -987,9 +987,9 @@ function renderLog(){
 /* ================= 追加欄・検索欄の固定 ================= */
 /* 固定ブロックをスクロールに合わせて少しずつ縮める。
    縮んだ分だけ下にすき間(stickspacer)を足すので、一覧は指の動きとぴったり同じ速さで動く */
-function pinBlock(stick,mark,root,PH){
+function pinBlock(stick,mark,root){
   const spacer=stick.nextElementSibling;
-  let hExp=0, range=1, raf=0, stuck=false;
+  let hExp=0, range=1, raf=0;
   const setT=t=>stick.style.setProperty('--t',t);
   function measure(){
     const cur=stick.style.getPropertyValue('--t')||'0';
@@ -1007,8 +1007,6 @@ function pinBlock(stick,mark,root,PH){
     const t=Math.min(1,Math.max(0,(root.scrollTop-markTop)/range));
     setT(t.toFixed(4));
     spacer.style.height=(t*range).toFixed(1)+'px';
-    const s=t>0.5;                                   // 欄が狭くなったら案内文を短く
-    if(s!==stuck){ stuck=s; for(const [el,full,short] of PH) el.placeholder=s?short:full; }
   }
   root.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(update); },{passive:true});
   let mraf=0; const remeasure=()=>{ if(!mraf) mraf=requestAnimationFrame(()=>{ mraf=0; measure(); }); };
@@ -1019,13 +1017,10 @@ function pinBlock(stick,mark,root,PH){
   stick.querySelectorAll('#exists,.chips').forEach(el=>ro.observe(el));
   measure();
 }
-pinBlock($('logStick'),$('logStickMark'),$('tabLog'),[
-  [$('lBookIn'),'例: 公式TOEIC問題集 10','テキスト'],[$('lPage'),'263','p.'],[$('lNum'),'142','No.'],
-  [$('lNote'),'例: 主語は the number(単数)なので is leased が正解','メモ'],[$('lWordIn'),'例: lease','単語'],[$('lq'),'メモや単語で検索','検索']]);
+pinBlock($('logStick'),$('logStickMark'),$('tabLog'));
 (()=>{
   const stick=$('stick');
-  pinBlock(stick,$('stickMark'),$('tabWords'),
-    [[fWord,'英語(例: Competent)','英語'],[fMean,'意味(例: 有能)','意味'],[$('q'),'検索(英語・日本語どちらでも)','検索']]);
+  pinBlock(stick,$('stickMark'),$('tabWords'));
   // 見出しへジャンプしたとき固定ブロックに隠れないよう高さを共有
   new ResizeObserver(()=>{
     document.documentElement.style.setProperty('--stick-h',stick.offsetHeight+'px');
