@@ -87,51 +87,43 @@
 
   /* ---- 追加欄・検索欄・A–Z を画面上に固定 ----
      --t はスクロール量に合わせて 0(広い表示)→ 1(詰めた表示)へ連続的に変わる。
-     大きさ・余白・位置はすべて --t から計算するので、スクロールにつれて少しずつ縮む */
+     並び方は変えずに、欄の高さ・余白・すき間だけを --t に合わせて少しずつ圧縮する */
   .stick{position:sticky;top:0;z-index:5;background:var(--bg);
-    margin-inline:-16px;padding:calc(8px * var(--t)) 16px 0;border-bottom:1px solid var(--line);
-    --t:0; --h:calc(46px - 6px * var(--t)); --g:calc(8px - 2px * var(--t));}
+    margin-inline:-16px;padding:calc(6px * var(--t)) 16px 0;border-bottom:1px solid var(--line);
+    --t:0; --h:calc(46px - 12px * var(--t)); --g:calc(8px - 4px * var(--t)); --sh:calc(34px - 6px * var(--t));}
   .stickspacer{height:0;}
   .stick input,.stick select{height:var(--h);padding-block:0;}
   .collapse{display:block;overflow:hidden;max-height:calc((1 - var(--t)) * var(--full,40px));opacity:calc(1 - var(--t) * 2);}
-  .stick .add,.stick .logform{padding:calc(14px - 6px * var(--t));border-radius:calc(14px - 2px * var(--t));}
-  .clr{width:calc(28px - 4px * var(--t,0));height:calc(28px - 4px * var(--t,0));}
+  .stick .add,.stick .logform{padding:calc(14px - 8px * var(--t));border-radius:calc(14px - 4px * var(--t));}
+  .clr{width:calc(28px - 6px * var(--t,0));height:calc(28px - 6px * var(--t,0));}
 
-  /* 単語の追加: 2段(英語 / 意味+追加)から1段(英語|意味|追加)へ、欄がすべるように移動 */
-  .addgrid{position:relative;--bw:64px;height:calc(var(--h) + (1 - var(--t)) * (var(--h) + var(--g)));}
-  .addgrid > *{position:absolute;margin:0;height:var(--h);}
-  #fWord{left:0;top:0;width:calc((1 - var(--t)) * 100% + var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2));}
-  #fMean{left:calc(var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2 + var(--g)));top:calc((1 - var(--t)) * (var(--h) + var(--g)));
-    width:calc((1 - var(--t)) * (100% - var(--bw) - var(--g)) + var(--t) * ((100% - var(--bw) - 2 * var(--g)) / 2));}
-  #addBtn{right:0;top:calc((1 - var(--t)) * (var(--h) + var(--g)));width:var(--bw);padding:0;}
+  /* 単語の追加: 英語 / 意味+追加 の2段のまま縮む */
+  .addgrid{display:grid;grid-template-columns:1fr auto;gap:var(--g);}
+  #fWord{grid-column:1 / -1;}
+  .addgrid input{min-width:0;}
+  #addBtn{height:var(--h);padding:0 calc(18px - 4px * var(--t));}
   .add .extra #exists{margin-top:8px;}
 
-  /* 検索と並び替え: 2段(検索 / 並び替え)から1段(検索|並び替え)へ */
-  .tools{position:relative;--sh:34px;margin-top:calc(18px - 10px * var(--t));
-    height:calc(var(--h) + (1 - var(--t)) * (var(--sh) + var(--g)));}
-  .tools > .sw-q{position:absolute;left:0;top:0;width:calc((1 - var(--t)) * 100% + var(--t) * 44%);}
-  .tools #q{padding-right:calc(40px - 4px * var(--t));}
-  .tools > .seg{position:absolute;align-items:center;height:var(--sh);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;
-    left:calc(var(--t) * (44% + var(--g)));width:calc((1 - var(--t)) * 100% + var(--t) * (56% - var(--g)));
-    top:calc((1 - var(--t)) * (var(--h) + var(--g)) + var(--t) * ((var(--h) - var(--sh)) / 2));}
+  /* 検索 / 並び替え の2段のまま縮む */
+  .tools{display:flex;flex-direction:column;gap:var(--g);margin-top:calc(18px - 12px * var(--t));}
+  .tools #q{padding-right:calc(40px - 6px * var(--t));}
+  .tools > .seg{align-items:center;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;}
   .tools > .seg::-webkit-scrollbar{display:none;}
   .tools .seg .ghost{height:var(--sh);padding:0 calc(12px - 2px * var(--t));font-size:.82rem;}
+  .stick #az{padding:calc(10px - 5px * var(--t)) 0 calc(8px - 4px * var(--t));margin-top:calc(4px - 2px * var(--t));}
+  .stick .foldbtn{padding:calc(4px - 2px * var(--t)) 14px calc(6px - 3px * var(--t));}
 
-  /* 間違えた問題: 見出し・説明は少しずつ消え、欄は少しずつ低くなる */
+  /* 間違えた問題: 見出し・説明は少しずつ消え、欄は少しずつ低くなる(並び方はそのまま) */
   .stick .logform{gap:var(--g);}
   .stick .logform label.collapse{margin-bottom:calc(3px * (1 - var(--t)));}
-  .stick #lNote{height:calc(70px - 32px * var(--t));min-height:0;padding-block:calc(10px - 2px * var(--t));resize:none;}
+  .stick #lNote{height:calc(70px - 36px * var(--t));min-height:0;padding-block:calc(10px - 4px * var(--t));resize:none;}
   .stick .logform .row .ghost,.stick .logform .acts button{height:var(--h);padding-block:0;}
-  /* 絞り込み: 2段(絞り込み+未復習 / 検索)から1段へ */
-  .logtools{position:relative;display:block;--tw:96px;margin-top:calc(18px - 10px * var(--t));
-    height:calc(var(--h) + (1 - var(--t)) * (var(--h) + var(--g)));}
-  .logtools > select{position:absolute;left:0;top:0;padding:0 10px;
-    width:calc((1 - var(--t)) * (100% - var(--tw) - var(--g)) + var(--t) * 34%);}
-  .logtools > #lTodo{position:absolute;top:calc((var(--h) - 34px) / 2);height:34px;width:var(--tw);padding:0 8px;
-    left:calc((1 - var(--t)) * (100% - var(--tw)) + var(--t) * (34% + var(--g)));}
-  .logtools > .sw-lq{position:absolute;top:calc((1 - var(--t)) * (var(--h) + var(--g)));
-    left:calc(var(--t) * (34% + var(--tw) + 2 * var(--g)));width:calc((1 - var(--t)) * 100% + var(--t) * (66% - var(--tw) - 2 * var(--g)));}
-  #lq{padding-right:calc(40px - 4px * var(--t));}
+  /* 絞り込み+未復習 / 検索 の2段のまま縮む */
+  .logtools{display:grid;grid-template-columns:1fr auto;gap:var(--g);align-items:center;margin-top:calc(18px - 12px * var(--t));}
+  .logtools > select{padding:0 10px;}
+  .logtools > #lTodo{height:var(--sh);padding:0 10px;}
+  .logtools > .sw-lq{grid-column:1 / -1;}
+  #lq{padding-right:calc(40px - 6px * var(--t));}
   .stickmark{height:1px;margin-bottom:-1px;}
   /* 入力欄・検索欄の出し入れ(高さをなめらかに変える) */
   .fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .26s cubic-bezier(.2,.8,.2,1);}
