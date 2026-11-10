@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15171c" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ES深掘り">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<title>ES深掘りノート</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1c1f26; --sub:#687080; --line:#e2e5eb;
+    --accent:#2b6be0; --accent-ink:#ffffff; --soft:#eaf1fd;
+    --warn:#b06a00; --warn-bg:#fdf1dc; --ok:#1f8a4c; --ok-bg:#e2f4e9; --danger:#c8402f;
+    --why:#7a4fd6; --num:#0f8a8a; --spec:#2b6be0; --repro:#b06a00; --corp:#c8402f; --person:#5a6a80;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171c; --card:#1e2128; --ink:#e8eaef; --sub:#9aa1ad; --line:#2d313a;
+      --accent:#6b9dff; --accent-ink:#0f1115; --soft:#1f2b42;
+      --warn:#f0bf55; --warn-bg:#352a12; --ok:#5fd08f; --ok-bg:#183223; --danger:#ff7a68;
+      --why:#b394ff; --num:#4fd1d1; --spec:#6b9dff; --repro:#f0bf55; --corp:#ff8a78; --person:#a8b4c6;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
+    font-size:15px;line-height:1.6;min-height:100vh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  button,input,textarea,select{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 16px 96px;}
+  header.top{display:flex;align-items:center;gap:8px;margin:4px 0 16px;}
+  header.top h1{font-size:1.15rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-size:.88rem;white-space:nowrap;}
+  .btn:hover{border-color:var(--sub);}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--sub);}
+  .btn.danger{color:var(--danger);}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .btn:focus-visible,.icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .icon{border:none;background:transparent;width:36px;height:36px;border-radius:8px;font-size:1.1rem;color:var(--sub);}
+  .icon:hover{background:var(--line);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .muted{color:var(--sub);font-size:.85rem;}
+  .empty{text-align:center;color:var(--sub);padding:40px 12px;line-height:1.9;}
+  .search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:12px;}
+  .co{display:flex;align-items:center;gap:12px;cursor:pointer;}
+  .co .name{font-weight:700;font-size:1rem;}
+  .co .meta{font-size:.8rem;color:var(--sub);}
+  .co .grow{flex:1;min-width:0;}
+  .pill{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-weight:600;white-space:nowrap;}
+  .pill.warn{background:var(--warn-bg);color:var(--warn);}
+  .pill.ok{background:var(--ok-bg);color:var(--ok);}
+  .pill.gray{background:var(--line);color:var(--sub);}
+  label.f{display:block;font-size:.78rem;color:var(--sub);margin:10px 0 4px;}
+  input.t,textarea.t,select.t{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);}
+  input.t:focus,textarea.t:focus,select.t:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;}
+  textarea.t{resize:vertical;min-height:120px;line-height:1.7;}
+  textarea.note{min-height:64px;font-size:.88rem;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row>*{flex:1;min-width:140px;}
+  .qhead{display:flex;gap:8px;align-items:flex-start;}
+  .qhead input{flex:1;font-weight:600;}
+  .qhead .lim{width:96px;flex:none;}
+  .count{display:flex;justify-content:flex-end;gap:8px;font-size:.78rem;color:var(--sub);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .count .over{color:var(--danger);font-weight:700;}
+  .count .short{color:var(--warn);}
+  .dd{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;}
+  .dd h3{font-size:.88rem;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .dd h3 .sp{flex:1;}
+  .types{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .dq{border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--bg);}
+  .dq summary{list-style:none;display:flex;gap:8px;align-items:flex-start;padding:9px 10px;cursor:pointer;font-size:.9rem;}
+  .dq summary::-webkit-details-marker{display:none;}
+  .dq .tag{flex:none;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:6px;border:1px solid currentColor;margin-top:2px;}
+  .dq .qt{flex:1;}
+  .dq .done{flex:none;color:var(--ok);font-size:.8rem;}
+  .dq .body{padding:0 10px 10px;}
+  .dq .intent{font-size:.78rem;color:var(--sub);margin-bottom:6px;}
+  .tag.why{color:var(--why);} .tag.num{color:var(--num);} .tag.spec{color:var(--spec);}
+  .tag.repro{color:var(--repro);} .tag.corp{color:var(--corp);} .tag.person{color:var(--person);} .tag.ai{color:var(--accent);}
+  .hint{font-size:.8rem;color:var(--sub);padding:4px 2px 8px;}
+  .err{font-size:.82rem;color:var(--danger);margin:6px 0;}
+  .fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));
+    border-radius:999px;padding:13px 20px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:.95rem;}
+  dialog{border:none;border-radius:16px;background:var(--card);color:var(--ink);padding:20px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 48px);}
+  dialog::backdrop{background:rgba(0,0,0,.45);}
+  dialog h2{font-size:1.05rem;margin-bottom:6px;}
+  .dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+  .practice-q{font-size:1.15rem;font-weight:700;line-height:1.6;margin:14px 0 8px;}
+  .practice-ctx{font-size:.8rem;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px 10px;max-height:120px;overflow:auto;white-space:pre-wrap;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:8px 16px;border-radius:999px;font-size:.85rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10;}
+  .toast.show{opacity:1;}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+  @media (max-width:560px){ .qhead{flex-wrap:wrap;} .qhead .qt-in{flex:1 1 100%;} .qhead .lim{width:110px;} .qhead .q-del{margin-left:auto;} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlgCompany">
+  <form method="dialog" id="formCompany">
+    <h2 id="dlgCompanyTitle">企業を追加</h2>
+    <label class="f" for="cName">企業名</label>
+    <input class="t" id="cName" required placeholder="例：〇〇商事">
+    <div class="row">
+      <div><label class="f" for="cIndustry">業界・職種</label><input class="t" id="cIndustry" placeholder="例：総合商社 / 営業"></div>
+      <div><label class="f" for="cStatus">選考状況</label>
+        <select class="t" id="cStatus">
+          <option>ES作成中</option><option>ES提出済</option><option>一次面接</option><option>二次面接</option>
+          <option>最終面接</option><option>内定</option><option>見送り</option>
+        </select></div>
+    </div>
+    <div class="row">
+      <div><label class="f" for="cDeadline">締切</label><input class="t" id="cDeadline" type="date"></div>
+      <div><label class="f" for="cUrl">マイページURL</label><input class="t" id="cUrl" type="url" placeholder="https://"></div>
+    </div>
+    <label class="f" for="cMemo">企業メモ（事業・社風・説明会で聞いたこと）</label>
+    <textarea class="t note" id="cMemo"></textarea>
+    <div class="dlg-actions">
+      <button class="btn danger" type="button" id="btnDeleteCompany" hidden>削除</button>
+      <span style="flex:1"></span>
+      <button class="btn" value="cancel" formnovalidate>キャンセル</button>
+      <button class="btn primary" value="ok">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgSettings">
+  <h2>設定</h2>
+  <p class="muted">深掘り質問は、設問と回答の内容からアプリ内で自動生成されます。Claude APIキーを入れると、「AIで深掘り」ボタンでより踏み込んだ質問も生成できます（任意）。</p>
+  <label class="f" for="sKey">Claude APIキー（任意）</label>
+  <input class="t" id="sKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+  <p class="muted" style="margin-top:6px">キーはこの端末のブラウザ内にだけ保存され、Anthropic のAPIへの送信にのみ使われます。共有端末では入力しないでください。</p>
+  <label class="f">バックアップ</label>
+  <div class="row">
+    <button class="btn" type="button" id="btnExport">書き出し（JSON）</button>
+    <button class="btn" type="button" id="btnImport">読み込み</button>
+    <input type="file" id="fileImport" accept="application/json,.json" hidden>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn" type="button" id="btnSettingsClose">閉じる</button>
+    <button class="btn primary" type="button" id="btnSettingsSave">保存</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPractice">
+  <h2 id="pTitle">面接練習</h2>
+  <div class="muted" id="pFrom"></div>
+  <div class="practice-q" id="pQ"></div>
+  <div class="practice-ctx" id="pCtx"></div>
+  <label class="f" for="pNote">回答メモ</label>
+  <textarea class="t note" id="pNote" placeholder="話す内容の要点をメモ"></textarea>
+  <div class="dlg-actions">
+    <button class="btn" type="button" id="pClose">終了</button>
+    <button class="btn primary" type="button" id="pNext">次の質問</button>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+/* ========== 保存 ========== */
+const KEY = 'es-deepdive-v1';
+const KEY_API = 'es-deepdive-apikey';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && Array.isArray(d.companies)) return d; } catch (e) {}
+  return { companies: [] };
+}
+let state = load();
+let saveTimer = null;
+function save(now) {
+  clearTimeout(saveTimer);
+  const run = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { toast('保存できませんでした'); } };
+  if (now) run(); else saveTimer = setTimeout(run, 300);
+}
+window.addEventListener('pagehide', () => save(true));
+function getKey() { try { return localStorage.getItem(KEY_API) || ''; } catch (e) { return ''; } }
+
+/* ========== 共通 ========== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return 'h' + (h >>> 0).toString(36); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1800); }
+const countChars = s => [...String(s || '').replace(/\r?\n/g, '')].length;
+function clip(s, n) { s = s.trim(); return [...s].length > n ? [...s].slice(0, n).join('') + '…' : s; }
+
+/* ========== 深掘りエンジン（ルールベース） ========== */
+const CAT = {
+  why: 'なぜ', spec: '具体化', num: '数字', repro: '再現性', corp: '企業理解', person: '人柄', ai: 'AI'
+};
+const TYPES = [
+  { id: 'motive', label: '志望動機', re: /志望|なぜ当社|当社を|弊社を|選んだ理由|応募した理由|魅力/ },
+  { id: 'gakuchika', label: 'ガクチカ', re: /学生時代|力を入れ|打ち込|取り組んだ|ガクチカ|最も頑張/ },
+  { id: 'pr', label: '自己PR・強み', re: /自己PR|自己ＰＲ|強み|長所|アピール|あなたらしさ/ },
+  { id: 'weak', label: '短所・弱み', re: /短所|弱み|苦手/ },
+  { id: 'failure', label: '挫折・困難', re: /挫折|失敗|困難|苦労|壁|乗り越え|逆境/ },
+  { id: 'team', label: 'チーム経験', re: /チーム|周囲|協力|巻き込|リーダー|組織/ },
+  { id: 'future', label: '入社後・キャリア', re: /入社後|将来|キャリア|実現したい|挑戦したい|ビジョン|年後|成し遂げ/ },
+  { id: 'research', label: '研究・ゼミ', re: /研究|卒論|卒業論文|ゼミ|専攻/ },
+];
+const TEMPLATES = {
+  motive: [
+    ['corp', '同業他社ではなく、なぜ{co}なのですか？'],
+    ['corp', '{co}の事業やサービスで、特に関心があるものは何ですか？'],
+    ['why', 'その業界に興味を持った原体験は何ですか？'],
+    ['corp', '他にどんな企業を受けていますか？共通する軸は？'],
+    ['repro', '{co}に入って、最初の3年で何をしたいですか？'],
+  ],
+  gakuchika: [
+    ['why', 'なぜその活動に取り組もうと思ったのですか？'],
+    ['spec', '取り組みの中で、一番大変だったことは何ですか？'],
+    ['spec', 'その中で、あなた自身が具体的にとった行動は？'],
+    ['repro', 'その経験から得たことを、入社後どう活かせますか？'],
+  ],
+  pr: [
+    ['spec', 'その強みが最も発揮されたエピソードを教えてください。'],
+    ['why', 'その強みはどのような経験から身についたのですか？'],
+    ['person', '周りの人からは、どんな人だと言われますか？'],
+    ['repro', 'その強みは、{co}の仕事のどんな場面で活きますか？'],
+  ],
+  weak: [
+    ['spec', 'その短所で実際に困った経験はありますか？'],
+    ['repro', '短所を改善するために、今取り組んでいることは？'],
+    ['person', 'その短所は、裏返すとどんな長所になりますか？'],
+  ],
+  failure: [
+    ['spec', 'そのとき、一番つらかったことは何ですか？'],
+    ['why', '投げ出さずに続けられた理由は何ですか？'],
+    ['repro', '今振り返ると、どうすれば失敗を防げたと思いますか？'],
+  ],
+  team: [
+    ['spec', 'チームの中でのあなたの役割は何でしたか？'],
+    ['spec', 'メンバーと意見が対立したことはありますか？どう解決しましたか？'],
+    ['person', 'やる気のないメンバーがいたら、どう関わりますか？'],
+  ],
+  future: [
+    ['why', 'そう考えるようになったきっかけは何ですか？'],
+    ['corp', 'それは{co}でなければ実現できないことですか？'],
+    ['repro', '実現するために、今から準備していることは？'],
+    ['corp', '希望の部署に配属されなかったらどうしますか？'],
+  ],
+  research: [
+    ['spec', '研究内容を、専門外の人にもわかるように説明してください。'],
+    ['why', 'なぜそのテーマを選んだのですか？'],
+    ['spec', '研究で行き詰まったとき、どう乗り越えましたか？'],
+    ['repro', '研究で培った力は、仕事でどう活きますか？'],
+  ],
+  other: [
+    ['why', 'なぜそう考えるのですか？'],
+    ['spec', 'それを裏付ける具体的なエピソードはありますか？'],
+    ['repro', 'その考えは、{co}での仕事にどうつながりますか？'],
+  ],
+};
+const ABSTRACT = ['コミュニケーション能力', 'コミュニケーション力', '主体性', '協調性', '粘り強さ', '責任感', '課題解決力', '問題解決力',
+  'リーダーシップ', '行動力', '向上心', '柔軟性', '傾聴力', '継続力', '計画性', '発信力', '巻き込み力', '誠実さ', '好奇心', 'チャレンジ精神'];
+const EXPERIENCES = [
+  [/アルバイト|バイト/, 'spec', 'アルバイトでは、どんな業務を任されていましたか？社員の方からどう評価されていましたか？'],
+  [/留学|海外/, 'spec', '留学（海外）で一番カルチャーショックを受けたことと、その乗り越え方は？'],
+  [/インターン/, 'corp', 'インターンで、社会人として足りないと感じたことは何ですか？'],
+  [/部活|サークル|体育会/, 'spec', 'その団体は何人規模で、あなたはどんな立場でしたか？'],
+  [/ボランティア/, 'why', 'なぜそのボランティアに参加しようと思ったのですか？'],
+  [/資格|検定|TOEIC/, 'spec', 'その資格（勉強）を選んだ理由と、勉強の進め方を教えてください。'],
+];
+
+function detectTypes(title) {
+  const t = TYPES.filter(x => x.re.test(title || ''));
+  return t.length ? t : [{ id: 'other', label: 'その他' }];
+}
+// 「そこで」「アルバイトで、」などの前置きを落として、引用を短くする
+function trimLead(s) {
+  s = s.trim();
+  const parts = s.split(/[、，,]/); const last = parts[parts.length - 1].trim();
+  if (parts.length > 1 && [...last].length >= 6) s = last;
+  return s.replace(/^(そこで|そのため|まず|次に|さらに|そして|しかし|また|特に|私は|私が)/, '').trim();
+}
+function sentences(text) {
+  return String(text || '').split(/(?<=[。！？!?\n])/).map(s => s.trim()).filter(Boolean);
+}
+function generateDeepDive(q, company) {
+  const co = company.name || '当社';
+  const title = q.title || '';
+  const ans = (q.answer || '').trim();
+  const out = []; const seen = new Set();
+  const add = (cat, text, intent) => {
+    text = text.replace(/\{co\}/g, co);
+    if (seen.has(text)) return; seen.add(text);
+    out.push({ cat, q: text, intent: intent || '' });
+  };
+
+  if (ans) {
+    // 1. 冒頭の結論
+    const sents = sentences(ans);
+    const first = sents[0] || '';
+    if (first && [...first].length <= 70) {
+      add('why', `冒頭で「${clip(first.replace(/[。！？]$/, ''), 40)}」と書かれていますが、それを一番よく表すエピソードは何ですか？`, '結論と根拠が一致しているかを確認する質問');
+    }
+    // 2. 数字
+    const nums = [...ans.matchAll(/[0-9０-９][0-9０-９,，.．]*\s*(%|％|人|名|件|倍|円|万円|万|割|時間|分|秒|日|週間|ヶ月|か月|カ月|年|位|社|回|点|kg|km)/g)].map(m => m[0].trim());
+    // 「15分から8分」のような変化はひとまとめにする
+    const U = '[0-9０-９][0-9０-９,，.．]*\\s*(?:%|％|人|名|件|倍|円|万円|万|割|時間|分|秒|日|週間|ヶ月|か月|カ月|年|位|社|回|点)';
+    const pairs = [...ans.matchAll(new RegExp(`(${U})から(${U})`, 'g'))].map(m => [m[1].trim(), m[2].trim()]);
+    pairs.slice(0, 1).forEach(([x, y]) =>
+      add('num', `「${x}→${y}」という変化は、どのように測りましたか？そのうち、あなたの施策による効果はどれくらいですか？`, '成果の測り方と自分の貢献を切り分けられるか'));
+    const used = new Set(pairs.slice(0, 1).flat());
+    [...new Set(nums)].filter(n => !used.has(n)).slice(0, 2 - Math.min(pairs.length, 1)).forEach(n =>
+      add('num', `「${n}」という数字は、どのように把握・計測しましたか？取り組む前と比べてどう変わりましたか？`, '数字の根拠と比較対象を説明できるか'));
+    if (!nums.length && countChars(ans) > 60 && TYPES.some(t => ['gakuchika', 'pr', 'failure', 'team'].includes(t.id) && t.re.test(title))) {
+      add('num', '成果や規模を数字で表すと、どのくらいになりますか？', '定量的に語れるよう準備しておく');
+    }
+    // 3. 「〜と考え」「〜と思い」
+    const reason = ans.match(/([^。！？\n]{6,40}?)(と考え|と思い|と感じ|と気づ|を痛感)/);
+    if (reason) add('why', `「${clip(trimLead(reason[1]), 28)}」と考えたのはなぜですか？そう思ったきっかけは？`, '思考の出発点を問う「なぜ」の深掘り');
+    // 4. 施策・工夫
+    const act = ans.match(/([^。！？\n、]{2,24}?)(を提案|を導入|を改善|を工夫|を実施|を企画|を作成|を始め)/);
+    if (act) {
+      add('why', `「${clip(trimLead(act[1]), 20)}」という施策を選んだのはなぜですか？他に検討した方法はありましたか？`, '選択肢を比較して判断したかを見る');
+      add('spec', 'その取り組みに反対や懸念を示す人はいませんでしたか？どう説得しましたか？', '周囲を巻き込む力を見る');
+    } else if (/提案|導入|改善|工夫|施策|企画/.test(ans)) {
+      add('why', 'その施策を選んだ理由は何ですか？他に検討した方法はありましたか？', '選択肢を比較して判断したかを見る');
+    }
+    // 5. 役割
+    const leader = /(リーダー|代表|主将|部長|キャプテン|幹事|責任者|班長|委員長|座長)(として|を務め|に就任|に選ばれ|を任され)|私が(リーダー|代表|主将|部長)/.test(ans);
+    if (leader) {
+      add('spec', 'リーダーとして一番苦労したことは何ですか？意見が割れたときどう決めましたか？', 'リーダー経験の中身を確認する');
+      add('person', 'メンバーからは、どんなリーダーだと言われていましたか？', '客観的な自己認識を見る');
+    } else if (/チーム|メンバー|仲間|部員|サークル|部活|周囲|全員/.test(ans)) {
+      add('spec', 'その中で、あなた自身の役割は何でしたか？あなたがいなかったら結果は変わっていましたか？', '個人の貢献を切り分けられるか');
+    }
+    // 6. 困難
+    if (/困難|苦労|大変|壁|課題|問題|うまくいかな|失敗|挫折/.test(ans)) {
+      add('spec', 'その課題の原因は何だと分析しましたか？', '原因分析の解像度を見る');
+    }
+    // 7. 抽象語
+    ABSTRACT.filter(w => ans.includes(w)).slice(0, 2).forEach(w =>
+      add('spec', `あなたにとっての「${w}」とは、具体的にどういうことですか？`, '抽象的な言葉を自分の言葉で定義できるか'));
+    // 8. 経験の種類
+    EXPERIENCES.forEach(([re, cat, text]) => { if (re.test(ans)) add(cat, text); });
+    // 9. 学び
+    if (/学んだ|学び|身につけ|身に付け|得た|気づいた|成長/.test(ans)) {
+      add('repro', 'その学びを、別の場面で活かした経験はありますか？', '再現性がある力かを確認する');
+    }
+    // 10. 企業への言及
+    if (/貴社|御社/.test(ans)) add('corp', `同業他社ではなく、なぜ${co}でなければいけないのですか？`, '志望度と企業研究の深さを見る');
+  }
+
+  // 設問タイプ別の定番質問
+  detectTypes(title).forEach(t => (TEMPLATES[t.id] || []).forEach(([cat, text]) => add(cat, text)));
+  if (ans) add('repro', '同じ状況にもう一度なったら、次はどこを変えますか？', '振り返りができるかを見る');
+  return out.slice(0, 14);
+}
+
+/* ========== AI深掘り（任意・Claude API） ========== */
+const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
+const AI_SCHEMA = {
+  type: 'object',
+  properties: {
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          question: { type: 'string' },
+          intent: { type: 'string' },
+          category: { type: 'string', enum: ['why', 'spec', 'num', 'repro', 'corp', 'person'] },
+        },
+        required: ['question', 'intent', 'category'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['questions'],
+  additionalProperties: false,
+};
+async function aiDeepDive(company, q) {
+  const apiKey = getKey();
+  if (!apiKey) throw new Error('設定からAPIキーを入力してください');
+  const { default: Anthropic } = await import(SDK_URL);
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const prompt =
+`就活生のエントリーシート（ES）の回答に対して、面接官が実際に聞きそうな深掘り質問を作ってください。
+
+<company>${company.name}${company.industry ? '（' + company.industry + '）' : ''}</company>
+<company_memo>${company.memo || 'なし'}</company_memo>
+<es_question>${q.title || '（設問未入力）'}</es_question>
+<es_answer>${q.answer || '（未回答）'}</es_answer>
+
+条件:
+- 回答の具体的な言葉や数字を引用しながら、本人にしか答えられない質問を6〜8個作る
+- 「なぜ」を重ねる質問、数字の根拠、行動の具体化、再現性、企業との接点、人柄をバランスよく含める
+- 回答の論理の弱い部分や、面接官が突っ込みたくなる部分を優先する
+- intent には「その質問で面接官が確認したいこと」を一文で書く
+- すべて日本語で書く`;
+  const res = await client.beta.messages.create({
+    model: 'claude-opus-5-5',
+    max_tokens: 16000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: AI_SCHEMA } },
+    messages: [{ role: 'user', content: prompt }],
+  });
+  if (res.stop_reason === 'refusal') throw new Error('この内容ではAI生成ができませんでした');
+  if (res.stop_reason === 'max_tokens') throw new Error('生成が途中で止まりました。もう一度お試しください');
+  const text = res.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const data = JSON.parse(text);
+  return data.questions.map(x => ({ cat: x.category || 'ai', q: x.question, intent: x.intent }));
+}
+function aiErrorMessage(e) {
+  const s = e && (e.status || (e.error && e.error.status));
+  if (s === 401) return 'APIキーが正しくないようです';
+  if (s === 429) return '混み合っています。少し待ってから再度お試しください';
+  if (s >= 500) return 'APIが一時的に利用できません。しばらくしてから再度お試しください';
+  if (e instanceof TypeError || (e && /Connection/.test(`${e.name} ${e.message} ${e.constructor && e.constructor.name}`))) return '通信に失敗しました。ネットワークを確認してください';
+  return e && e.message ? e.message : 'AI生成に失敗しました';
+}
+
+/* ========== 画面 ========== */
+let route = { view: 'home', id: null };
+let filter = '';
+const STATUS_CLASS = { '内定': 'ok', '見送り': 'gray', 'ES作成中': 'warn' };
+
+function render() {
+  const app = $('#app');
+  if (route.view === 'company') {
+    const c = state.companies.find(x => x.id === route.id);
+    if (c) { app.innerHTML = companyView(c); bindCompany(c); return; }
+    route = { view: 'home', id: null };
+  }
+  app.innerHTML = homeView(); bindHome();
+}
+
+function daysLeft(d) {
+  if (!d) return null;
+  const t = new Date(d + 'T23:59:59'); return Math.ceil((t - Date.now()) / 86400000);
+}
+function homeView() {
+  const list = state.companies
+    .filter(c => !filter || (c.name + c.industry + c.status).toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => (a.deadline || '9999') .localeCompare(b.deadline || '9999'));
+  const items = list.map(c => {
+    const dl = daysLeft(c.deadline);
+    const dlPill = c.deadline && c.status === 'ES作成中'
+      ? `<span class="pill ${dl <= 3 ? 'warn' : 'gray'}">${dl < 0 ? '締切済' : dl === 0 ? '今日締切' : 'あと' + dl + '日'}</span>` : '';
+    const nq = c.questions.length, nd = c.questions.filter(q => (q.answer || '').trim()).length;
+    return `<div class="card co" data-id="${c.id}" role="button" tabindex="0">
+      <div class="grow">
+        <div class="name">${esc(c.name)}</div>
+        <div class="meta">${esc(c.industry || '')}${c.industry ? ' ・ ' : ''}設問 ${nd}/${nq} 回答済${c.deadline ? ' ・ 締切 ' + esc(c.deadline) : ''}</div>
+      </div>
+      ${dlPill}<span class="pill ${STATUS_CLASS[c.status] || ''}">${esc(c.status || '')}</span>
+    </div>`;
+  }).join('');
+  return `<header class="top"><h1>ES深掘りノート</h1>
+      <button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
+    ${state.companies.length ? `<input class="search" id="search" placeholder="企業名・業界・選考状況で検索" value="${esc(filter)}">` : ''}
+    ${items || (state.companies.length ? '<div class="empty">該当する企業がありません</div>' :
+      `<div class="empty">企業ごとにESを登録すると、<br>設問と回答の内容から<b>面接で聞かれそうな深掘り質問</b>が<br>自動で表示されます。<br><br>右下の「＋ 企業を追加」から始めましょう。</div>`)}
+    <button class="btn primary fab" id="btnAdd">＋ 企業を追加</button>`;
+}
+function bindHome() {
+  $('#btnAdd').onclick = () => openCompanyDialog(null);
+  $('#btnSettings').onclick = openSettings;
+  const s = $('#search');
+  if (s) s.oninput = () => { filter = s.value; const pos = s.selectionStart; render(); const n = $('#search'); n.focus(); n.setSelectionRange(pos, pos); };
+  document.querySelectorAll('.co').forEach(el => {
+    const go = () => { route = { view: 'company', id: el.dataset.id }; render(); window.scrollTo(0, 0); };
+    el.onclick = go; el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+  });
+}
+
+function companyView(c) {
+  const qs = c.questions.map((q, i) => questionCard(c, q, i)).join('');
+  return `<header class="top">
+      <button class="icon" id="btnBack" aria-label="一覧に戻る">←</button>
+      <h1>${esc(c.name)}</h1>
+      <button class="btn" id="btnPractice" ${c.questions.length ? '' : 'disabled'}>面接練習</button>
+      <button class="icon" id="btnEditCo" aria-label="企業情報を編集">✎</button>
+    </header>
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div class="muted">${esc(c.industry || '業界未設定')}${c.deadline ? ' ・ 締切 ' + esc(c.deadline) : ''}</div>
+        <div style="flex:none"><span class="pill ${STATUS_CLASS[c.status] || ''}">${esc(c.status || '')}</span></div>
+      </div>
+      ${c.url ? `<div class="muted"><a href="${esc(c.url)}" target="_blank" rel="noopener">マイページを開く ↗</a></div>` : ''}
+      ${c.memo ? `<div class="muted" style="white-space:pre-wrap;margin-top:6px">${esc(c.memo)}</div>` : ''}
+    </div>
+    ${qs || '<div class="empty">設問を追加して、ESの回答を書きましょう。</div>'}
+    <button class="btn primary fab" id="btnAddQ">＋ 設問を追加</button>`;
+}
+function questionCard(c, q, i) {
+  const n = countChars(q.answer), lim = Number(q.limit) || 0;
+  let cls = '';
+  if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
+  const types = detectTypes(q.title).map(t => `<span class="pill gray">${t.label}</span>`).join('');
+  return `<section class="card q" data-qid="${q.id}">
+    <div class="qhead">
+      <input class="t qt-in" placeholder="設問 ${i + 1}（例：学生時代に力を入れたことは？）" value="${esc(q.title)}" aria-label="設問">
+      <input class="t lim" type="number" min="0" step="50" inputmode="numeric" placeholder="字数" value="${q.limit || ''}" aria-label="文字数制限">
+      <button class="icon q-del" aria-label="設問を削除">🗑</button>
+    </div>
+    <textarea class="t ans" placeholder="回答を書くと、内容に合わせた深掘り質問が下に表示されます" aria-label="回答">${esc(q.answer)}</textarea>
+    <div class="count"><span class="cnt ${cls}">${n}${lim ? ' / ' + lim : ''} 字${cls === 'short' ? '（8割未満）' : cls === 'over' ? '（超過）' : ''}</span></div>
+    <div class="dd">
+      <h3>🔍 想定される深掘り質問 <span class="sp"></span>
+        <button class="btn q-copy" type="button">コピー</button>
+        <button class="btn q-ai" type="button">✨ AIで深掘り</button></h3>
+      <div class="types">${types}</div>
+      <div class="dq-list">${deepDiveList(c, q)}</div>
+    </div>
+  </section>`;
+}
+function allDeepDive(c, q) {
+  const rule = generateDeepDive(q, c);
+  const ai = (q.ai || []).map(x => ({ ...x, isAi: true }));
+  return [...ai, ...rule];
+}
+function deepDiveList(c, q) {
+  const items = allDeepDive(c, q);
+  const notes = q.notes || {};
+  const hint = !(q.answer || '').trim() ? '<div class="hint">回答を書くと、内容（数字・施策・役割・抽象的な言葉など）に応じた質問が追加されます。</div>' : '';
+  return hint + items.map(d => {
+    const k = hash(d.q), note = notes[k] || '';
+    return `<details class="dq" data-k="${k}">
+      <summary><span class="tag ${d.cat}">${d.isAi ? 'AI・' : ''}${CAT[d.cat] || 'AI'}</span><span class="qt">${esc(d.q)}</span>${note.trim() ? '<span class="done" aria-label="メモあり">✓</span>' : ''}</summary>
+      <div class="body">${d.intent ? `<div class="intent">ねらい：${esc(d.intent)}</div>` : ''}
+        <textarea class="t note dq-note" placeholder="答える内容をメモ">${esc(note)}</textarea></div>
+    </details>`;
+  }).join('') + (q.aiError ? `<div class="err">${esc(q.aiError)}</div>` : '');
+}
+
+function bindCompany(c) {
+  $('#btnBack').onclick = () => { route = { view: 'home', id: null }; render(); };
+  $('#btnEditCo').onclick = () => openCompanyDialog(c);
+  $('#btnPractice').onclick = () => startPractice(c);
+  $('#btnAddQ').onclick = () => {
+    c.questions.push({ id: uid(), title: '', limit: '', answer: '', notes: {}, ai: [] });
+    save(); render();
+    const cards = document.querySelectorAll('.q'); const last = cards[cards.length - 1];
+    last.scrollIntoView({ behavior: 'smooth', block: 'center' }); last.querySelector('.qt-in').focus({ preventScroll: true });
+  };
+  document.querySelectorAll('.q').forEach(card => {
+    const q = c.questions.find(x => x.id === card.dataset.qid);
+    const list = card.querySelector('.dq-list');
+    let t = null;
+    const refreshList = () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const open = [...list.querySelectorAll('details[open]')].map(d => d.dataset.k);
+        list.innerHTML = deepDiveList(c, q);
+        open.forEach(k => { const d = list.querySelector(`details[data-k="${k}"]`); if (d) d.open = true; });
+        card.querySelector('.types').innerHTML = detectTypes(q.title).map(t => `<span class="pill gray">${t.label}</span>`).join('');
+      }, 450);
+    };
+    const refreshCount = () => {
+      const n = countChars(q.answer), lim = Number(q.limit) || 0, el = card.querySelector('.cnt');
+      let cls = ''; if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
+      el.className = 'cnt ' + cls;
+      el.textContent = `${n}${lim ? ' / ' + lim : ''} 字${cls === 'short' ? '（8割未満）' : cls === 'over' ? '（超過）' : ''}`;
+    };
+    card.querySelector('.qt-in').oninput = e => { q.title = e.target.value; save(); refreshList(); };
+    card.querySelector('.lim').oninput = e => { q.limit = e.target.value; save(); refreshCount(); };
+    card.querySelector('.ans').oninput = e => { q.answer = e.target.value; save(); refreshCount(); refreshList(); };
+    card.querySelector('.q-del').onclick = () => {
+      if (!confirm('この設問と深掘りメモを削除しますか？')) return;
+      c.questions = c.questions.filter(x => x !== q); save(); render();
+    };
+    list.addEventListener('input', e => {
+      if (!e.target.classList.contains('dq-note')) return;
+      const k = e.target.closest('details').dataset.k;
+      q.notes = q.notes || {}; q.notes[k] = e.target.value; save();
+      const s = e.target.closest('details').querySelector('summary');
+      const has = !!e.target.value.trim(), mark = s.querySelector('.done');
+      if (has && !mark) s.insertAdjacentHTML('beforeend', '<span class="done" aria-label="メモあり">✓</span>');
+      if (!has && mark) mark.remove();
+    });
+    card.querySelector('.q-copy').onclick = async () => {
+      const txt = `【${c.name}】${q.title}\n` + allDeepDive(c, q).map((d, i) => `${i + 1}. ${d.q}`).join('\n');
+      try { await navigator.clipboard.writeText(txt); toast('コピーしました'); } catch (e) { toast('コピーできませんでした'); }
+    };
+    const aiBtn = card.querySelector('.q-ai');
+    aiBtn.onclick = async () => {
+      if (!getKey()) { openSettings(); toast('APIキーを設定してください'); return; }
+      if (!(q.answer || '').trim()) { toast('先に回答を書いてください'); return; }
+      aiBtn.disabled = true; aiBtn.textContent = '生成中…'; q.aiError = '';
+      try { q.ai = await aiDeepDive(c, q); save(); toast('AIの深掘り質問を追加しました'); }
+      catch (e) { q.aiError = aiErrorMessage(e); }
+      aiBtn.disabled = false; aiBtn.textContent = '✨ AIで深掘り';
+      list.innerHTML = deepDiveList(c, q);
+    };
+  });
+}
+
+/* ========== 企業ダイアログ ========== */
+let editing = null;
+function openCompanyDialog(c) {
+  editing = c;
+  $('#dlgCompanyTitle').textContent = c ? '企業情報を編集' : '企業を追加';
+  $('#cName').value = c ? c.name : '';
+  $('#cIndustry').value = c ? c.industry || '' : '';
+  $('#cStatus').value = c ? c.status || 'ES作成中' : 'ES作成中';
+  $('#cDeadline').value = c ? c.deadline || '' : '';
+  $('#cUrl').value = c ? c.url || '' : '';
+  $('#cMemo').value = c ? c.memo || '' : '';
+  $('#btnDeleteCompany').hidden = !c;
+  $('#dlgCompany').returnValue = '';
+  $('#dlgCompany').showModal();
+}
+$('#dlgCompany').addEventListener('close', () => {
+  if ($('#dlgCompany').returnValue !== 'ok') return;
+  const v = { name: $('#cName').value.trim(), industry: $('#cIndustry').value.trim(), status: $('#cStatus').value,
+    deadline: $('#cDeadline').value, url: $('#cUrl').value.trim(), memo: $('#cMemo').value };
+  if (!v.name) return;
+  if (editing) Object.assign(editing, v);
+  else {
+    const c = { id: uid(), ...v, questions: [
+      { id: uid(), title: '志望動機を教えてください。', limit: '400', answer: '', notes: {}, ai: [] },
+      { id: uid(), title: '学生時代に最も力を入れたことは何ですか。', limit: '400', answer: '', notes: {}, ai: [] },
+    ] };
+    state.companies.push(c); route = { view: 'company', id: c.id };
+  }
+  save(true); render();
+});
+$('#btnDeleteCompany').onclick = () => {
+  if (!editing || !confirm(`「${editing.name}」とすべての設問を削除しますか？`)) return;
+  state.companies = state.companies.filter(x => x !== editing);
+  save(true); $('#dlgCompany').close(); route = { view: 'home', id: null }; render();
+};
+
+/* ========== 設定 ========== */
+function openSettings() { $('#sKey').value = getKey(); $('#dlgSettings').showModal(); }
+$('#btnSettingsClose').onclick = () => $('#dlgSettings').close();
+$('#btnSettingsSave').onclick = () => {
+  try { const k = $('#sKey').value.trim(); if (k) localStorage.setItem(KEY_API, k); else localStorage.removeItem(KEY_API); toast('保存しました'); }
+  catch (e) { toast('保存できませんでした'); }
+  $('#dlgSettings').close();
+};
+$('#btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `es-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || !Array.isArray(d.companies)) throw new Error();
+    if (!confirm(`${d.companies.length}社のデータを読み込みます。今のデータは置き換えられます。よろしいですか？`)) return;
+    state = d; save(true); route = { view: 'home', id: null }; $('#dlgSettings').close(); render(); toast('読み込みました');
+  } catch (err) { toast('読み込めないファイルです'); }
+  e.target.value = '';
+};
+
+/* ========== 面接練習 ========== */
+let practice = null;
+function startPractice(c) {
+  const pool = [];
+  c.questions.forEach(q => allDeepDive(c, q).forEach(d => pool.push({ q, d, k: hash(d.q) })));
+  if (!pool.length) return;
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  practice = { c, pool, i: 0 };
+  showPractice(); $('#dlgPractice').showModal();
+}
+function showPractice() {
+  const { c, pool, i } = practice, it = pool[i];
+  $('#pTitle').textContent = `面接練習 ${i + 1} / ${pool.length}`;
+  $('#pFrom').textContent = `${c.name} ・ ${it.q.title || '設問'}`;
+  $('#pQ').textContent = it.d.q;
+  $('#pCtx').textContent = it.q.answer ? 'あなたのES：\n' + it.q.answer : '（この設問は未回答です）';
+  $('#pNote').value = (it.q.notes || {})[it.k] || '';
+  $('#pNext').textContent = i + 1 < pool.length ? '次の質問' : '最初から';
+}
+$('#pNote').oninput = e => { const it = practice.pool[practice.i]; it.q.notes = it.q.notes || {}; it.q.notes[it.k] = e.target.value; save(); };
+$('#pNext').onclick = () => { practice.i = (practice.i + 1) % practice.pool.length; showPractice(); };
+$('#pClose').onclick = () => $('#dlgPractice').close();
+$('#dlgPractice').addEventListener('close', () => { save(true); if (route.view === 'company') render(); });
+
+render();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
