@@ -3,103 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15171c" media="(prefers-color-scheme: dark)">
+<!--ARTIFACT-START-->
+<title>ES深掘りノート</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#f3f4f7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ES深掘り">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<title>ES深掘りノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
 <style>
+  /* レイアウト：1カラムの「面接ノート」。設問カードの下に、質問→回答→さらに深い質問が字下げで連なる */
   :root{
-    --bg:#f5f6f8; --card:#ffffff; --ink:#1c1f26; --sub:#687080; --line:#e2e5eb;
-    --accent:#2b6be0; --accent-ink:#ffffff; --soft:#eaf1fd;
-    --warn:#b06a00; --warn-bg:#fdf1dc; --ok:#1f8a4c; --ok-bg:#e2f4e9; --danger:#c8402f;
-    --why:#7a4fd6; --num:#0f8a8a; --spec:#2b6be0; --repro:#b06a00; --corp:#c8402f; --person:#5a6a80;
+    --bg:#f3f4f7; --card:#ffffff; --ink:#1b2033; --sub:#636a7e; --line:#dfe2ea;
+    --accent:#2f3f8f; --accent-ink:#ffffff; --soft:#e8ebf7;
+    --seal:#c2402d; --seal-bg:#fbe7e3; --ok:#1f7a4c; --ok-bg:#e1f2e8; --warn:#9a6200; --warn-bg:#fbefd8;
+    --why:#6b46c1; --num:#0e7c7c; --spec:#2f3f8f; --repro:#9a6200; --corp:#c2402d; --person:#56627a; --ai:#a03f8e;
+    --shadow:0 10px 28px rgba(27,32,51,.16);
+    --f-head:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
+    --f-body:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
   }
   @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#15171c; --card:#1e2128; --ink:#e8eaef; --sub:#9aa1ad; --line:#2d313a;
-      --accent:#6b9dff; --accent-ink:#0f1115; --soft:#1f2b42;
-      --warn:#f0bf55; --warn-bg:#352a12; --ok:#5fd08f; --ok-bg:#183223; --danger:#ff7a68;
-      --why:#b394ff; --num:#4fd1d1; --spec:#6b9dff; --repro:#f0bf55; --corp:#ff8a78; --person:#a8b4c6;
+    :root:not([data-theme="light"]){
+      --bg:#14161d; --card:#1d2029; --ink:#e7e9f0; --sub:#9aa0b0; --line:#2c303c;
+      --accent:#8fa2ff; --accent-ink:#11131a; --soft:#232a45;
+      --seal:#ff8a76; --seal-bg:#3a1f1a; --ok:#62cf93; --ok-bg:#16301f; --warn:#f0c060; --warn-bg:#33290f;
+      --why:#b79bff; --num:#55d0d0; --spec:#8fa2ff; --repro:#f0c060; --corp:#ff8a76; --person:#aab5c8; --ai:#f08ad8;
+      --shadow:0 10px 28px rgba(0,0,0,.5); color-scheme:dark;
     }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161d; --card:#1d2029; --ink:#e7e9f0; --sub:#9aa0b0; --line:#2c303c;
+    --accent:#8fa2ff; --accent-ink:#11131a; --soft:#232a45;
+    --seal:#ff8a76; --seal-bg:#3a1f1a; --ok:#62cf93; --ok-bg:#16301f; --warn:#f0c060; --warn-bg:#33290f;
+    --why:#b79bff; --num:#55d0d0; --spec:#8fa2ff; --repro:#f0c060; --corp:#ff8a76; --person:#aab5c8; --ai:#f08ad8;
+    --shadow:0 10px 28px rgba(0,0,0,.5); color-scheme:dark;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;}
-  body{background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
-    font-size:15px;line-height:1.6;min-height:100vh;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;min-height:100vh;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
   button,input,textarea,select{font:inherit;color:inherit;}
   button{cursor:pointer;}
-  .wrap{max-width:760px;margin:0 auto;padding:16px 16px 96px;}
+  a{color:var(--accent);}
+  .wrap{max-width:760px;margin:0 auto;padding-block:16px 104px;}
   header.top{display:flex;align-items:center;gap:8px;margin:4px 0 16px;}
-  header.top h1{font-size:1.15rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-size:.88rem;white-space:nowrap;}
+  header.top h1{font-family:var(--f-head);font-size:1.2rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em;}
+  .btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px;font-size:.86rem;white-space:nowrap;}
   .btn:hover{border-color:var(--sub);}
-  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
-  .btn.ghost{background:transparent;border-color:transparent;color:var(--sub);}
-  .btn.danger{color:var(--danger);}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+  .btn.small{padding:4px 9px;font-size:.78rem;}
+  .btn.danger{color:var(--seal);}
+  .btn.ai{color:var(--ai);border-color:color-mix(in srgb,var(--ai) 40%,var(--line));}
   .btn:disabled{opacity:.5;cursor:default;}
-  .btn:focus-visible,.icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-  .icon{border:none;background:transparent;width:36px;height:36px;border-radius:8px;font-size:1.1rem;color:var(--sub);}
+  .btn:focus-visible,.icon:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .icon{border:none;background:transparent;min-width:36px;height:36px;border-radius:8px;font-size:1.05rem;color:var(--sub);}
   .icon:hover{background:var(--line);}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
-  .muted{color:var(--sub);font-size:.85rem;}
-  .empty{text-align:center;color:var(--sub);padding:40px 12px;line-height:1.9;}
+  .muted{color:var(--sub);font-size:.84rem;}
+  .empty{text-align:center;color:var(--sub);padding:36px 12px;line-height:1.9;}
+  .empty b{color:var(--ink);}
+  .banner{font-size:.82rem;color:var(--sub);background:var(--soft);border-radius:10px;padding:8px 12px;margin-bottom:12px;}
   .search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:12px;}
-  .co{display:flex;align-items:center;gap:12px;cursor:pointer;}
-  .co .name{font-weight:700;font-size:1rem;}
+  .co{display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap;}
+  .co .name{font-family:var(--f-head);font-weight:700;font-size:1.02rem;}
   .co .meta{font-size:.8rem;color:var(--sub);}
   .co .grow{flex:1;min-width:0;}
-  .pill{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-weight:600;white-space:nowrap;}
+  .pill{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-weight:700;white-space:nowrap;}
+  .pill.seal{background:var(--seal-bg);color:var(--seal);}
   .pill.warn{background:var(--warn-bg);color:var(--warn);}
   .pill.ok{background:var(--ok-bg);color:var(--ok);}
   .pill.gray{background:var(--line);color:var(--sub);}
   label.f{display:block;font-size:.78rem;color:var(--sub);margin:10px 0 4px;}
   input.t,textarea.t,select.t{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);}
   input.t:focus,textarea.t:focus,select.t:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;}
-  textarea.t{resize:vertical;min-height:120px;line-height:1.7;}
-  textarea.note{min-height:64px;font-size:.88rem;}
+  textarea.t{resize:vertical;min-height:120px;line-height:1.75;}
+  textarea.note{min-height:60px;font-size:.88rem;}
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .row>*{flex:1;min-width:140px;}
   .qhead{display:flex;gap:8px;align-items:flex-start;}
-  .qhead input{flex:1;font-weight:600;}
+  .qhead .qt-in{flex:1;font-weight:700;min-width:0;}
   .qhead .lim{width:96px;flex:none;}
-  .count{display:flex;justify-content:flex-end;gap:8px;font-size:.78rem;color:var(--sub);margin-top:4px;font-variant-numeric:tabular-nums;}
-  .count .over{color:var(--danger);font-weight:700;}
+  .count{display:flex;justify-content:flex-end;font-size:.78rem;color:var(--sub);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .count .over{color:var(--seal);font-weight:700;}
   .count .short{color:var(--warn);}
+  .check{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:8px;align-items:center;}
+  .check .lbl{font-size:.74rem;color:var(--sub);margin-right:2px;}
+  .chk{font-size:.72rem;padding:1px 7px;border-radius:6px;border:1px dashed var(--line);color:var(--sub);}
+  .chk.on{border-style:solid;border-color:var(--ok);color:var(--ok);background:var(--ok-bg);}
   .dd{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;}
-  .dd h3{font-size:.88rem;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-  .dd h3 .sp{flex:1;}
+  .dd-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .dd-h h3{font-family:var(--f-head);font-size:.92rem;flex:1;min-width:160px;}
   .types{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
   .dq{border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--bg);}
-  .dq summary{list-style:none;display:flex;gap:8px;align-items:flex-start;padding:9px 10px;cursor:pointer;font-size:.9rem;}
-  .dq summary::-webkit-details-marker{display:none;}
-  .dq .tag{flex:none;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:6px;border:1px solid currentColor;margin-top:2px;}
-  .dq .qt{flex:1;}
-  .dq .done{flex:none;color:var(--ok);font-size:.8rem;}
-  .dq .body{padding:0 10px 10px;}
-  .dq .intent{font-size:.78rem;color:var(--sub);margin-bottom:6px;}
+  .kids .dq{background:var(--card);}
+  .kids .kids .dq{background:var(--bg);}
+  .dq>summary{list-style:none;display:flex;gap:8px;align-items:flex-start;padding:9px 10px;cursor:pointer;font-size:.9rem;}
+  .dq>summary::-webkit-details-marker{display:none;}
+  .tag{flex:none;font-size:.66rem;font-weight:700;padding:1px 6px;border-radius:6px;border:1px solid currentColor;margin-top:3px;line-height:1.5;}
+  .dq .qt{flex:1;min-width:0;}
+  .dq .meta{flex:none;display:flex;gap:6px;align-items:center;font-size:.74rem;color:var(--sub);}
+  .dq .done{color:var(--ok);font-weight:700;}
+  .dq .lv{font-variant-numeric:tabular-nums;}
+  .dq>.body{padding:0 10px 10px;}
+  .intent{font-size:.78rem;color:var(--sub);margin-bottom:6px;}
+  .kids{margin-top:8px;padding-left:10px;border-left:2px solid var(--line);}
+  .kids-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.78rem;color:var(--sub);margin-bottom:6px;}
+  .kids-h span{flex:1;min-width:120px;}
   .tag.why{color:var(--why);} .tag.num{color:var(--num);} .tag.spec{color:var(--spec);}
-  .tag.repro{color:var(--repro);} .tag.corp{color:var(--corp);} .tag.person{color:var(--person);} .tag.ai{color:var(--accent);}
-  .hint{font-size:.8rem;color:var(--sub);padding:4px 2px 8px;}
-  .err{font-size:.82rem;color:var(--danger);margin:6px 0;}
-  .fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));
-    border-radius:999px;padding:13px 20px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:.95rem;}
-  dialog{border:none;border-radius:16px;background:var(--card);color:var(--ink);padding:20px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 48px);}
-  dialog::backdrop{background:rgba(0,0,0,.45);}
-  dialog h2{font-size:1.05rem;margin-bottom:6px;}
-  .dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
-  .practice-q{font-size:1.15rem;font-weight:700;line-height:1.6;margin:14px 0 8px;}
-  .practice-ctx{font-size:.8rem;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px 10px;max-height:120px;overflow:auto;white-space:pre-wrap;}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
-    padding:8px 16px;border-radius:999px;font-size:.85rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10;}
+  .tag.repro{color:var(--repro);} .tag.corp{color:var(--corp);} .tag.person{color:var(--person);} .tag.ai{color:var(--ai);}
+  .hint{font-size:.8rem;color:var(--sub);padding:2px 2px 8px;}
+  .hint.warn{color:var(--warn);}
+  .err{font-size:.82rem;color:var(--seal);margin:6px 0;}
+  .fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    border-radius:999px;padding:13px 20px;box-shadow:var(--shadow);font-size:.95rem;z-index:5;}
+  dialog{border:none;border-radius:16px;background:var(--card);color:var(--ink);padding:20px;width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 48px);margin:auto;}
+  dialog::backdrop{background:rgba(10,12,20,.5);}
+  dialog h2{font-family:var(--f-head);font-size:1.05rem;margin-bottom:6px;}
+  .dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;align-items:center;}
+  .dlg-actions .sp{flex:1;}
+  .practice-q{font-family:var(--f-head);font-size:1.15rem;font-weight:700;line-height:1.6;margin:10px 0 8px;}
+  .practice-chain{font-size:.8rem;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px 10px;max-height:160px;overflow:auto;white-space:pre-wrap;}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:8px 16px;border-radius:999px;font-size:.85rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20;max-width:calc(100vw - 32px);}
   .toast.show{opacity:1;}
-  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
   @media (max-width:560px){ .qhead{flex-wrap:wrap;} .qhead .qt-in{flex:1 1 100%;} .qhead .lim{width:110px;} .qhead .q-del{margin-left:auto;} }
+  @media (prefers-reduced-motion:reduce){ .toast{transition:none;} }
 </style>
 </head>
 <body>
@@ -107,7 +139,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <dialog id="dlgCompany">
-  <form method="dialog" id="formCompany">
+  <form id="formCompany">
     <h2 id="dlgCompanyTitle">企業を追加</h2>
     <label class="f" for="cName">企業名</label>
     <input class="t" id="cName" required placeholder="例：〇〇商事">
@@ -127,76 +159,130 @@
     <textarea class="t note" id="cMemo"></textarea>
     <div class="dlg-actions">
       <button class="btn danger" type="button" id="btnDeleteCompany" hidden>削除</button>
-      <span style="flex:1"></span>
-      <button class="btn" value="cancel" formnovalidate>キャンセル</button>
-      <button class="btn primary" value="ok">保存</button>
+      <span class="sp"></span>
+      <button class="btn" type="button" id="btnCompanyCancel">キャンセル</button>
+      <button class="btn primary" type="submit">保存</button>
     </div>
   </form>
 </dialog>
 
+<dialog id="dlgConfirm">
+  <h2 id="confirmMsg"></h2>
+  <div class="dlg-actions">
+    <button class="btn" type="button" id="confirmNo">キャンセル</button>
+    <button class="btn primary" type="button" id="confirmYes">OK</button>
+  </div>
+</dialog>
+
 <dialog id="dlgSettings">
   <h2>設定</h2>
-  <p class="muted">深掘り質問は、設問と回答の内容からアプリ内で自動生成されます。Claude APIキーを入れると、「AIで深掘り」ボタンでより踏み込んだ質問も生成できます（任意）。</p>
-  <label class="f" for="sKey">Claude APIキー（任意）</label>
-  <input class="t" id="sKey" type="password" autocomplete="off" placeholder="sk-ant-...">
-  <p class="muted" style="margin-top:6px">キーはこの端末のブラウザ内にだけ保存され、Anthropic のAPIへの送信にのみ使われます。共有端末では入力しないでください。</p>
+  <p class="muted" id="aiStatus"></p>
   <label class="f">バックアップ</label>
   <div class="row">
     <button class="btn" type="button" id="btnExport">書き出し（JSON）</button>
     <button class="btn" type="button" id="btnImport">読み込み</button>
     <input type="file" id="fileImport" accept="application/json,.json" hidden>
   </div>
-  <div class="dlg-actions">
-    <button class="btn" type="button" id="btnSettingsClose">閉じる</button>
-    <button class="btn primary" type="button" id="btnSettingsSave">保存</button>
-  </div>
+  <p class="muted" style="margin-top:8px" id="storeStatus"></p>
+  <div class="dlg-actions"><button class="btn primary" type="button" id="btnSettingsClose">閉じる</button></div>
 </dialog>
 
 <dialog id="dlgPractice">
   <h2 id="pTitle">面接練習</h2>
   <div class="muted" id="pFrom"></div>
+  <div class="practice-chain" id="pChain"></div>
   <div class="practice-q" id="pQ"></div>
-  <div class="practice-ctx" id="pCtx"></div>
-  <label class="f" for="pNote">回答メモ</label>
-  <textarea class="t note" id="pNote" placeholder="話す内容の要点をメモ"></textarea>
+  <label class="f" for="pNote">あなたの答え（メモ）</label>
+  <textarea class="t note" id="pNote" placeholder="話す内容の要点をメモ。書くと、この答えへの深掘りに進めます"></textarea>
   <div class="dlg-actions">
     <button class="btn" type="button" id="pClose">終了</button>
+    <span class="sp"></span>
+    <button class="btn" type="button" id="pDeeper">↳ さらに深掘り</button>
     <button class="btn primary" type="button" id="pNext">次の質問</button>
   </div>
 </dialog>
 
 <script>
 'use strict';
-/* ========== 保存 ========== */
-const KEY = 'es-deepdive-v1';
-const KEY_API = 'es-deepdive-apikey';
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && Array.isArray(d.companies)) return d; } catch (e) {}
-  return { companies: [] };
-}
-let state = load();
-let saveTimer = null;
-function save(now) {
-  clearTimeout(saveTimer);
-  const run = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { toast('保存できませんでした'); } };
-  if (now) run(); else saveTimer = setTimeout(run, 300);
-}
-window.addEventListener('pagehide', () => save(true));
-function getKey() { try { return localStorage.getItem(KEY_API) || ''; } catch (e) { return ''; } }
-
-/* ========== 共通 ========== */
+/* ================= 共通 ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return 'h' + (h >>> 0).toString(36); }
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1800); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
 const countChars = s => [...String(s || '').replace(/\r?\n/g, '')].length;
-function clip(s, n) { s = s.trim(); return [...s].length > n ? [...s].slice(0, n).join('') + '…' : s; }
+function clip(s, n) { s = String(s).trim(); return [...s].length > n ? [...s].slice(0, n).join('') + '…' : s; }
+function askConfirm(msg, okLabel) {
+  return new Promise(res => {
+    const d = $('#dlgConfirm'); $('#confirmMsg').textContent = msg; $('#confirmYes').textContent = okLabel || 'OK';
+    const done = v => { d.close(); res(v); };
+    $('#confirmYes').onclick = () => done(true); $('#confirmNo').onclick = () => done(false);
+    d.oncancel = () => res(false);
+    d.showModal();
+  });
+}
 
-/* ========== 深掘りエンジン（ルールベース） ========== */
-const CAT = {
-  why: 'なぜ', spec: '具体化', num: '数字', repro: '再現性', corp: '企業理解', person: '人柄', ai: 'AI'
-};
+/* ================= 保存（claude.aiでは本人だけのDB、それ以外はこの端末） ================= */
+const LOCAL_KEY = 'es-deepdive-v1';
+const caps = { db: null, col: null, sample: null, downloads: null };
+let state = { companies: [] };
+let ready = false;
+const saveTimers = {};
+
+function loadLocal() {
+  try { const d = JSON.parse(localStorage.getItem(LOCAL_KEY)); if (d && Array.isArray(d.companies)) return d; } catch (e) {}
+  return { companies: [] };
+}
+function writeLocal() { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(state)); } catch (e) {} }
+function normalize(c) {
+  c.questions = Array.isArray(c.questions) ? c.questions : [];
+  c.questions.forEach(q => { q.notes = q.notes || {}; q.ai = Array.isArray(q.ai) ? { root: q.ai } : (q.ai || {}); });
+  return c;
+}
+function saveCompany(c, now) {
+  clearTimeout(saveTimers[c.id]);
+  const run = async () => {
+    delete saveTimers[c.id];
+    if (!caps.col) { writeLocal(); return; }
+    try { await caps.col.doc(c.id).set(JSON.parse(JSON.stringify(c))); }
+    catch (e) { toast(e && e.code === 'resource_exhausted' ? 'データが大きすぎて保存できません' : '保存に失敗しました。通信を確認してください'); }
+  };
+  if (now) run(); else saveTimers[c.id] = setTimeout(run, 700);
+}
+async function removeCompany(c) {
+  clearTimeout(saveTimers[c.id]);
+  state.companies = state.companies.filter(x => x !== c);
+  if (caps.col) { try { await caps.col.doc(c.id).delete(); } catch (e) { toast('削除に失敗しました'); } }
+  else writeLocal();
+}
+function flushAll() { Object.keys(saveTimers).forEach(id => { const c = state.companies.find(x => x.id === id); if (c) saveCompany(c, true); }); }
+window.addEventListener('pagehide', flushAll);
+
+async function initStore() {
+  const hasClaude = typeof window.claude === 'object' && window.claude && typeof window.claude.use === 'function';
+  if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); ready = true; render(); registerSW(); return; }
+  // claude.ai の中：AIはあなたのプランで、データはあなた専用の保存場所へ
+  window.claude.use('sample').then(s => { caps.sample = s; if (ready) render(); });
+  window.claude.use('downloads').then(d => { caps.downloads = d; });
+  const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+  const id = user ? await user.id().catch(() => null) : null;
+  if (db && id) {
+    caps.db = db; caps.col = db.collection('data/users/' + id);
+    const slow = setTimeout(() => { if (!ready) { $('#app').innerHTML = `<div class="empty">保存データに接続できません。<br>通信状況を確認して、ページを開き直してください。</div>`; } }, 10000);
+    try {
+      const snap = await caps.col.get();
+      state = { companies: snap.docs.map(d => normalize({ ...d.data(), id: d.id })) };
+    } catch (e) { toast('データを読み込めませんでした'); }
+    clearTimeout(slow);
+  } else {
+    state = loadLocal(); state.companies.forEach(normalize);
+  }
+  ready = true; render();
+}
+function registerSW() { if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {}); }
+
+/* ================= 深掘りエンジン ================= */
+const CAT = { why: 'なぜ', spec: '具体化', num: '数字', repro: '再現性', corp: '企業理解', person: '人柄', ai: 'AI' };
 const TYPES = [
   { id: 'motive', label: '志望動機', re: /志望|なぜ当社|当社を|弊社を|選んだ理由|応募した理由|魅力/ },
   { id: 'gakuchika', label: 'ガクチカ', re: /学生時代|力を入れ|打ち込|取り組んだ|ガクチカ|最も頑張/ },
@@ -204,27 +290,31 @@ const TYPES = [
   { id: 'weak', label: '短所・弱み', re: /短所|弱み|苦手/ },
   { id: 'failure', label: '挫折・困難', re: /挫折|失敗|困難|苦労|壁|乗り越え|逆境/ },
   { id: 'team', label: 'チーム経験', re: /チーム|周囲|協力|巻き込|リーダー|組織/ },
+  { id: 'value', label: '価値観', re: /価値観|大切にして|大事にして|信念|モットー|譲れない/ },
   { id: 'future', label: '入社後・キャリア', re: /入社後|将来|キャリア|実現したい|挑戦したい|ビジョン|年後|成し遂げ/ },
   { id: 'research', label: '研究・ゼミ', re: /研究|卒論|卒業論文|ゼミ|専攻/ },
 ];
 const TEMPLATES = {
   motive: [
     ['corp', '同業他社ではなく、なぜ{co}なのですか？'],
-    ['corp', '{co}の事業やサービスで、特に関心があるものは何ですか？'],
+    ['corp', '{co}のどんな取り組みに魅力を感じましたか？'],
     ['why', 'その業界に興味を持った原体験は何ですか？'],
     ['corp', '他にどんな企業を受けていますか？共通する軸は？'],
-    ['repro', '{co}に入って、最初の3年で何をしたいですか？'],
+    ['repro', '入社後、どのように活躍したいですか？'],
+    ['repro', 'そのために、今どんな準備をしていますか？'],
   ],
   gakuchika: [
-    ['why', 'なぜその活動に取り組もうと思ったのですか？'],
-    ['spec', '取り組みの中で、一番大変だったことは何ですか？'],
-    ['spec', 'その中で、あなた自身が具体的にとった行動は？'],
-    ['repro', 'その経験から得たことを、入社後どう活かせますか？'],
+    ['why', 'その活動を始めた理由は何ですか？'],
+    ['spec', '具体的に、あなたは何をしましたか？'],
+    ['spec', 'うまくいかなかったとき、どう乗り越えましたか？'],
+    ['spec', '周りを巻き込むために、どんな工夫をしましたか？'],
+    ['repro', 'その経験から何を学び、仕事でどう活かせますか？'],
   ],
   pr: [
-    ['spec', 'その強みが最も発揮されたエピソードを教えてください。'],
+    ['spec', 'その強みが発揮された具体的な場面はどこですか？'],
     ['why', 'その強みはどのような経験から身についたのですか？'],
-    ['person', '周りの人からは、どんな人だと言われますか？'],
+    ['person', 'その強みは、周りの人からどう評価されていますか？'],
+    ['person', '逆に、あなたの弱みは何ですか？どう改善していますか？'],
     ['repro', 'その強みは、{co}の仕事のどんな場面で活きますか？'],
   ],
   weak: [
@@ -235,12 +325,18 @@ const TEMPLATES = {
   failure: [
     ['spec', 'そのとき、一番つらかったことは何ですか？'],
     ['why', '投げ出さずに続けられた理由は何ですか？'],
-    ['repro', '今振り返ると、どうすれば失敗を防げたと思いますか？'],
+    ['repro', '今振り返ると、どうすれば防げたと思いますか？'],
   ],
   team: [
     ['spec', 'チームの中でのあなたの役割は何でしたか？'],
-    ['spec', 'メンバーと意見が対立したことはありますか？どう解決しましたか？'],
+    ['spec', 'チームで意見がぶつかったとき、どう調整しましたか？'],
     ['person', 'やる気のないメンバーがいたら、どう関わりますか？'],
+  ],
+  value: [
+    ['why', 'なぜそれを大切にするようになったのですか？'],
+    ['spec', 'その価値観に従って、迷いながら選択した経験はありますか？'],
+    ['why', 'ほかに候補はありましたか？その中でなぜそれを選んだのですか？'],
+    ['spec', '物事を進めるとき、ほかに大切にしていることは何ですか？'],
   ],
   future: [
     ['why', 'そう考えるようになったきっかけは何ですか？'],
@@ -261,174 +357,201 @@ const TEMPLATES = {
   ],
 };
 const ABSTRACT = ['コミュニケーション能力', 'コミュニケーション力', '主体性', '協調性', '粘り強さ', '責任感', '課題解決力', '問題解決力',
-  'リーダーシップ', '行動力', '向上心', '柔軟性', '傾聴力', '継続力', '計画性', '発信力', '巻き込み力', '誠実さ', '好奇心', 'チャレンジ精神'];
+  'リーダーシップ', '行動力', '向上心', '柔軟性', '傾聴力', '継続力', '計画性', '発信力', '巻き込み力', '誠実さ', '好奇心', 'チャレンジ精神', '成長', 'やりがい', '社会貢献'];
 const EXPERIENCES = [
   [/アルバイト|バイト/, 'spec', 'アルバイトでは、どんな業務を任されていましたか？社員の方からどう評価されていましたか？'],
-  [/留学|海外/, 'spec', '留学（海外）で一番カルチャーショックを受けたことと、その乗り越え方は？'],
+  [/留学|海外/, 'spec', '海外で一番カルチャーショックを受けたことと、その乗り越え方は？'],
   [/インターン/, 'corp', 'インターンで、社会人として足りないと感じたことは何ですか？'],
   [/部活|サークル|体育会/, 'spec', 'その団体は何人規模で、あなたはどんな立場でしたか？'],
   [/ボランティア/, 'why', 'なぜそのボランティアに参加しようと思ったのですか？'],
-  [/資格|検定|TOEIC/, 'spec', 'その資格（勉強）を選んだ理由と、勉強の進め方を教えてください。'],
+  [/資格|検定|TOEIC/, 'spec', 'その資格を選んだ理由と、勉強の進め方を教えてください。'],
 ];
+// 記事の自己PR構成（結論→きっかけ→目標・課題→行動→結果→活かし方）
+const STRUCTURE = [
+  ['結論', /強み|私は|私の|考え|です。/],
+  ['きっかけ', /きっかけ|当初|入学|始め|経験から|原点|幼い|高校/],
+  ['目標・課題', /目標|課題|問題|目指|掲げ|困難|壁/],
+  ['行動', /提案|導入|改善|工夫|実施|取り組|行動|作成|企画|働きかけ|話し合/],
+  ['結果', /結果|達成|成功|向上|増加|減少|短縮|改善され|伸び|獲得|優勝|合格/],
+  ['活かし方', /活か|入社後|貴社|御社|今後|仕事で|社会人/],
+];
+const NUM_UNITS = '%|％|人|名|件|倍|円|万円|万|割|時間|分|秒|日|週間|ヶ月|か月|カ月|年|位|社|回|点|kg|km';
+const NUM_RE = new RegExp(`[0-9０-９][0-9０-９,，.．]*\\s*(?:${NUM_UNITS})`, 'g');
+const HAS_NUM = new RegExp(NUM_RE.source);
 
 function detectTypes(title) {
   const t = TYPES.filter(x => x.re.test(title || ''));
   return t.length ? t : [{ id: 'other', label: 'その他' }];
 }
-// 「そこで」「アルバイトで、」などの前置きを落として、引用を短くする
+function sentences(text) { return String(text || '').split(/(?<=[。！？!?\n])/).map(s => s.trim()).filter(Boolean); }
 function trimLead(s) {
-  s = s.trim();
+  s = String(s).trim();
   const parts = s.split(/[、，,]/); const last = parts[parts.length - 1].trim();
   if (parts.length > 1 && [...last].length >= 6) s = last;
   return s.replace(/^(そこで|そのため|まず|次に|さらに|そして|しかし|また|特に|私は|私が)/, '').trim();
 }
-function sentences(text) {
-  return String(text || '').split(/(?<=[。！？!?\n])/).map(s => s.trim()).filter(Boolean);
+function makeAdder() {
+  const out = [], seen = new Set();
+  const add = (cat, q, intent) => { if (seen.has(q)) return; seen.add(q); out.push({ cat, q, intent: intent || '' }); };
+  return { out, add };
 }
+// 文章（ESの回答、または深掘りへの答え）の中身から質問を作る
+function analyzeText(text, add, co, opts = {}) {
+  const ans = String(text || '').trim(); if (!ans) return;
+  const sents = sentences(ans), first = sents[0] || '';
+  if (opts.lead && first && [...first].length <= 70)
+    add('why', `冒頭で「${clip(first.replace(/[。！？]$/, ''), 40)}」と書かれていますが、それを一番よく表すエピソードは何ですか？`, '結論と根拠が一致しているかを確認する');
+  const pairs = [...ans.matchAll(new RegExp(`(${NUM_RE.source})から(${NUM_RE.source})`, 'g'))].map(m => [m[1].trim(), m[2].trim()]);
+  if (pairs[0]) add('num', `「${pairs[0][0]}→${pairs[0][1]}」という変化は、どのように測りましたか？そのうち、あなたの行動による効果はどれくらいですか？`, '成果の測り方と自分の貢献を切り分けられるか');
+  const used = new Set(pairs.slice(0, 1).flat());
+  const nums = [...new Set((ans.match(NUM_RE) || []).map(s => s.trim()))].filter(n => !used.has(n));
+  nums.slice(0, pairs[0] ? 1 : 2).forEach(n =>
+    add('num', `「${n}」という数字は、どのように把握しましたか？何と比べてその数字なのですか？`, '数字の根拠と比較対象を説明できるか'));
+  const reason = ans.match(/([^。！？\n]{6,40}?)(と考え|と思い|と感じ|と気づ|を痛感)/);
+  if (reason) add('why', `「${clip(trimLead(reason[1]), 28)}」と考えたのはなぜですか？そう思ったきっかけは？`, '思考の出発点を問う');
+  const act = ans.match(/([^。！？\n、]{2,24}?)(を提案|を導入|を改善|を工夫|を実施|を企画|を作成|を始め)/);
+  if (act) {
+    add('why', `「${clip(trimLead(act[1]), 20)}」を選んだのはなぜですか？ほかに検討した方法はありましたか？`, '選択肢を比べて判断したかを見る');
+    add('spec', 'その取り組みに反対や懸念を示す人はいませんでしたか？どう説得しましたか？', '周囲を巻き込む力を見る');
+  } else if (/提案|導入|改善|工夫|施策|企画/.test(ans)) {
+    add('why', 'その方法を選んだ理由は何ですか？ほかに検討した方法はありましたか？', '選択肢を比べて判断したかを見る');
+  }
+  const leader = /(リーダー|代表|主将|部長|キャプテン|幹事|責任者|班長|委員長|座長)(として|を務め|に就任|に選ばれ|を任され)|私が(リーダー|代表|主将|部長)/.test(ans);
+  if (leader) {
+    add('spec', 'リーダーとして一番苦労したことは何ですか？意見が割れたときどう決めましたか？', 'リーダー経験の中身を確認する');
+    add('person', 'メンバーからは、どんなリーダーだと言われていましたか？', '客観的な自己認識を見る');
+  } else if (/チーム|メンバー|仲間|部員|サークル|部活|周囲|全員|みんな/.test(ans)) {
+    add('spec', 'その中で、あなた自身の役割は何でしたか？あなたがいなかったら結果は変わっていましたか？', '個人の貢献を切り分けられるか');
+  }
+  if (/困難|苦労|大変|壁|課題|問題|うまくいかな|失敗|挫折/.test(ans)) add('spec', 'その課題の原因は何だと分析しましたか？', '原因分析の深さを見る');
+  ABSTRACT.filter(w => ans.includes(w)).slice(0, 2).forEach(w =>
+    add('spec', `あなたにとっての「${w}」とは、具体的にどういうことですか？`, '抽象的な言葉を自分の言葉で説明できるか'));
+  EXPERIENCES.forEach(([re, cat, q]) => { if (re.test(ans)) add(cat, q); });
+  if (/学んだ|学び|身につけ|身に付け|得た|気づいた|成長/.test(ans)) add('repro', 'その学びを、別の場面で活かした経験はありますか？', '再現性がある力かを確認する');
+  if (/貴社|御社/.test(ans)) add('corp', `同業他社ではなく、なぜ${co}でなければいけないのですか？`, '志望度と企業研究の深さを見る');
+}
+// 1段目：設問＋ESの回答から
 function generateDeepDive(q, company) {
   const co = company.name || '当社';
-  const title = q.title || '';
+  const { out, add } = makeAdder();
   const ans = (q.answer || '').trim();
-  const out = []; const seen = new Set();
-  const add = (cat, text, intent) => {
-    text = text.replace(/\{co\}/g, co);
-    if (seen.has(text)) return; seen.add(text);
-    out.push({ cat, q: text, intent: intent || '' });
-  };
-
-  if (ans) {
-    // 1. 冒頭の結論
-    const sents = sentences(ans);
-    const first = sents[0] || '';
-    if (first && [...first].length <= 70) {
-      add('why', `冒頭で「${clip(first.replace(/[。！？]$/, ''), 40)}」と書かれていますが、それを一番よく表すエピソードは何ですか？`, '結論と根拠が一致しているかを確認する質問');
-    }
-    // 2. 数字
-    const nums = [...ans.matchAll(/[0-9０-９][0-9０-９,，.．]*\s*(%|％|人|名|件|倍|円|万円|万|割|時間|分|秒|日|週間|ヶ月|か月|カ月|年|位|社|回|点|kg|km)/g)].map(m => m[0].trim());
-    // 「15分から8分」のような変化はひとまとめにする
-    const U = '[0-9０-９][0-9０-９,，.．]*\\s*(?:%|％|人|名|件|倍|円|万円|万|割|時間|分|秒|日|週間|ヶ月|か月|カ月|年|位|社|回|点)';
-    const pairs = [...ans.matchAll(new RegExp(`(${U})から(${U})`, 'g'))].map(m => [m[1].trim(), m[2].trim()]);
-    pairs.slice(0, 1).forEach(([x, y]) =>
-      add('num', `「${x}→${y}」という変化は、どのように測りましたか？そのうち、あなたの施策による効果はどれくらいですか？`, '成果の測り方と自分の貢献を切り分けられるか'));
-    const used = new Set(pairs.slice(0, 1).flat());
-    [...new Set(nums)].filter(n => !used.has(n)).slice(0, 2 - Math.min(pairs.length, 1)).forEach(n =>
-      add('num', `「${n}」という数字は、どのように把握・計測しましたか？取り組む前と比べてどう変わりましたか？`, '数字の根拠と比較対象を説明できるか'));
-    if (!nums.length && countChars(ans) > 60 && TYPES.some(t => ['gakuchika', 'pr', 'failure', 'team'].includes(t.id) && t.re.test(title))) {
-      add('num', '成果や規模を数字で表すと、どのくらいになりますか？', '定量的に語れるよう準備しておく');
-    }
-    // 3. 「〜と考え」「〜と思い」
-    const reason = ans.match(/([^。！？\n]{6,40}?)(と考え|と思い|と感じ|と気づ|を痛感)/);
-    if (reason) add('why', `「${clip(trimLead(reason[1]), 28)}」と考えたのはなぜですか？そう思ったきっかけは？`, '思考の出発点を問う「なぜ」の深掘り');
-    // 4. 施策・工夫
-    const act = ans.match(/([^。！？\n、]{2,24}?)(を提案|を導入|を改善|を工夫|を実施|を企画|を作成|を始め)/);
-    if (act) {
-      add('why', `「${clip(trimLead(act[1]), 20)}」という施策を選んだのはなぜですか？他に検討した方法はありましたか？`, '選択肢を比較して判断したかを見る');
-      add('spec', 'その取り組みに反対や懸念を示す人はいませんでしたか？どう説得しましたか？', '周囲を巻き込む力を見る');
-    } else if (/提案|導入|改善|工夫|施策|企画/.test(ans)) {
-      add('why', 'その施策を選んだ理由は何ですか？他に検討した方法はありましたか？', '選択肢を比較して判断したかを見る');
-    }
-    // 5. 役割
-    const leader = /(リーダー|代表|主将|部長|キャプテン|幹事|責任者|班長|委員長|座長)(として|を務め|に就任|に選ばれ|を任され)|私が(リーダー|代表|主将|部長)/.test(ans);
-    if (leader) {
-      add('spec', 'リーダーとして一番苦労したことは何ですか？意見が割れたときどう決めましたか？', 'リーダー経験の中身を確認する');
-      add('person', 'メンバーからは、どんなリーダーだと言われていましたか？', '客観的な自己認識を見る');
-    } else if (/チーム|メンバー|仲間|部員|サークル|部活|周囲|全員/.test(ans)) {
-      add('spec', 'その中で、あなた自身の役割は何でしたか？あなたがいなかったら結果は変わっていましたか？', '個人の貢献を切り分けられるか');
-    }
-    // 6. 困難
-    if (/困難|苦労|大変|壁|課題|問題|うまくいかな|失敗|挫折/.test(ans)) {
-      add('spec', 'その課題の原因は何だと分析しましたか？', '原因分析の解像度を見る');
-    }
-    // 7. 抽象語
-    ABSTRACT.filter(w => ans.includes(w)).slice(0, 2).forEach(w =>
-      add('spec', `あなたにとっての「${w}」とは、具体的にどういうことですか？`, '抽象的な言葉を自分の言葉で定義できるか'));
-    // 8. 経験の種類
-    EXPERIENCES.forEach(([re, cat, text]) => { if (re.test(ans)) add(cat, text); });
-    // 9. 学び
-    if (/学んだ|学び|身につけ|身に付け|得た|気づいた|成長/.test(ans)) {
-      add('repro', 'その学びを、別の場面で活かした経験はありますか？', '再現性がある力かを確認する');
-    }
-    // 10. 企業への言及
-    if (/貴社|御社/.test(ans)) add('corp', `同業他社ではなく、なぜ${co}でなければいけないのですか？`, '志望度と企業研究の深さを見る');
-  }
-
-  // 設問タイプ別の定番質問
-  detectTypes(title).forEach(t => (TEMPLATES[t.id] || []).forEach(([cat, text]) => add(cat, text)));
+  analyzeText(ans, add, co, { lead: true });
+  if (ans && !HAS_NUM.test(ans) && countChars(ans) > 60 && detectTypes(q.title).some(t => ['gakuchika', 'pr', 'failure', 'team'].includes(t.id)))
+    add('num', '成果や規模を数字で表すと、どのくらいになりますか？', '定量的に話せるよう準備しておく');
+  detectTypes(q.title).forEach(t => (TEMPLATES[t.id] || []).forEach(([cat, text]) => add(cat, text.replace(/\{co\}/g, co))));
   if (ans) add('repro', '同じ状況にもう一度なったら、次はどこを変えますか？', '振り返りができるかを見る');
   return out.slice(0, 14);
 }
-
-/* ========== AI深掘り（任意・Claude API） ========== */
-const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
-const AI_SCHEMA = {
-  type: 'object',
-  properties: {
-    questions: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          question: { type: 'string' },
-          intent: { type: 'string' },
-          category: { type: 'string', enum: ['why', 'spec', 'num', 'repro', 'corp', 'person'] },
-        },
-        required: ['question', 'intent', 'category'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['questions'],
-  additionalProperties: false,
+// 2段目以降：「深掘りへの自分の答え」からさらに深掘り
+const CHAIN = {
+  why: [['spec', 'そう思うようになった、具体的な場面を教えてください。', 'きっかけを場面で語れるか'],
+        ['why', 'それは、ほかの経験でも同じでしたか？', '一貫した価値観かを見る']],
+  spec: [['spec', 'その行動の結果、どうなりましたか？', '行動と結果をつなげて話せるか'],
+         ['why', 'なぜその行動を選んだのですか？', '判断の理由を問う']],
+  num: [['num', 'もともと目標はいくつに設定していましたか？なぜその数字にしたのですか？', '目標設定の根拠を見る'],
+        ['spec', 'その数字を達成するために、一番効いたことは何ですか？', '成果の要因を分析できているか']],
+  repro: [['repro', '入社後の具体的な場面で言うと、どんなときに活きますか？', '仕事のイメージを持てているか'],
+          ['spec', '実際に、別の場面で試したことはありますか？', '再現性を確かめる']],
+  corp: [['corp', 'それは、ほかの会社でも実現できるのではないですか？', '志望理由の独自性を試す'],
+         ['repro', 'そのために、今どんな準備をしていますか？', '本気度を見る']],
+  person: [['person', 'その評価を、あなた自身はどう受け止めていますか？', '自己認識と他者評価のずれを見る'],
+           ['spec', 'そう言われた具体的なエピソードはありますか？', '根拠となる場面を語れるか']],
+  ai: [['why', 'なぜそう言えるのですか？', '根拠を問う'],
+       ['spec', '具体的には、どういうことですか？', '具体化を求める']],
 };
-async function aiDeepDive(company, q) {
-  const apiKey = getKey();
-  if (!apiKey) throw new Error('設定からAPIキーを入力してください');
-  const { default: Anthropic } = await import(SDK_URL);
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-  const prompt =
-`就活生のエントリーシート（ES）の回答に対して、面接官が実際に聞きそうな深掘り質問を作ってください。
+const MAX_DEPTH = 5; // 1段目＋4段（なぜを5回）
+function generateFollowUps(parent, note, company) {
+  const co = company.name || '当社';
+  const { out, add } = makeAdder();
+  const ans = String(note || '').trim(); if (!ans) return [];
+  const first = sentences(ans)[0] || '';
+  if (first && [...first].length >= 8) add('why', `「${clip(first.replace(/[。！？]$/, ''), 30)}」とのことですが、なぜそう言えるのですか？`, '答えの根拠をさらに問う');
+  analyzeText(ans, add, co);
+  (CHAIN[parent.cat] || CHAIN.ai).forEach(([c, q, i]) => add(c, q, i));
+  return out.filter(x => x.q !== parent.q).slice(0, 4);
+}
+function structureCheck(ans) { return STRUCTURE.map(([label, re]) => ({ label, on: re.test(ans || '') })); }
+
+/* ================= AI深掘り（claude.ai のプラン内で動く） ================= */
+const AI_FORMAT = `出力は次の形のJSON配列だけにしてください（前後に文章を付けない）：
+[{"question":"質問文","intent":"面接官がこの質問で確かめたいこと（一文）","category":"why|spec|num|repro|corp|person のどれか"}]`;
+function chainText(chain) { return chain.map((x, i) => `質問${i + 1}：${x.q}\n答え${i + 1}：${x.a || '（未回答）'}`).join('\n\n'); }
+async function aiQuestions(company, q, chain) {
+  if (!caps.sample) throw { code: 'unavailable' };
+  const base = `あなたは新卒採用の面接官です。就活生のES（エントリーシート）と面接の受け答えを読み、次に聞く深掘り質問を作ってください。
 
 <company>${company.name}${company.industry ? '（' + company.industry + '）' : ''}</company>
 <company_memo>${company.memo || 'なし'}</company_memo>
 <es_question>${q.title || '（設問未入力）'}</es_question>
 <es_answer>${q.answer || '（未回答）'}</es_answer>
+`;
+  const task = chain.length
+    ? `<interview>\n${chainText(chain)}\n</interview>
 
 条件:
-- 回答の具体的な言葉や数字を引用しながら、本人にしか答えられない質問を6〜8個作る
-- 「なぜ」を重ねる質問、数字の根拠、行動の具体化、再現性、企業との接点、人柄をバランスよく含める
-- 回答の論理の弱い部分や、面接官が突っ込みたくなる部分を優先する
-- intent には「その質問で面接官が確認したいこと」を一文で書く
-- すべて日本語で書く`;
-  const res = await client.beta.messages.create({
-    model: 'claude-opus-5-5',
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'medium', format: { type: 'json_schema', schema: AI_SCHEMA } },
-    messages: [{ role: 'user', content: prompt }],
-  });
-  if (res.stop_reason === 'refusal') throw new Error('この内容ではAI生成ができませんでした');
-  if (res.stop_reason === 'max_tokens') throw new Error('生成が途中で止まりました。もう一度お試しください');
-  const text = res.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const data = JSON.parse(text);
-  return data.questions.map(x => ({ cat: x.category || 'ai', q: x.question, intent: x.intent }));
+- 最後の「答え」に対して、面接官が次に聞く深掘り質問を3つ作る
+- 最後の答えの中の具体的な言葉や数字を引用し、本人にしか答えられない質問にする
+- なぜを重ねる質問・具体化・数字の根拠・再現性のうち、答えの弱い部分を突くものを優先する
+- それまでに聞いた質問と重複させない`
+    : `条件:
+- ESの回答に対して、面接官が聞きそうな深掘り質問を6つ作る
+- 回答の具体的な言葉や数字を引用し、本人にしか答えられない質問にする
+- 結論→きっかけ→目標・課題→行動→結果→入社後の活かし方 のうち、書かれていない部分や論理が弱い部分を優先する
+- なぜ・具体化・数字・再現性・企業理解・人柄をバランスよく含める`;
+  const data = await caps.sample.json(`${base}\n${task}\n- すべて日本語\n\n${AI_FORMAT}`, { modelTier: 'default' });
+  if (!Array.isArray(data)) throw { code: 'invalid_json' };
+  return data.filter(x => x && typeof x.question === 'string').slice(0, 8).map(x => ({
+    cat: CAT[x.category] ? x.category : 'ai', q: x.question.trim(), intent: String(x.intent || ''), ai: true,
+  }));
 }
 function aiErrorMessage(e) {
-  const s = e && (e.status || (e.error && e.error.status));
-  if (s === 401) return 'APIキーが正しくないようです';
-  if (s === 429) return '混み合っています。少し待ってから再度お試しください';
-  if (s >= 500) return 'APIが一時的に利用できません。しばらくしてから再度お試しください';
-  if (e instanceof TypeError || (e && /Connection/.test(`${e.name} ${e.message} ${e.constructor && e.constructor.name}`))) return '通信に失敗しました。ネットワークを確認してください';
-  return e && e.message ? e.message : 'AI生成に失敗しました';
+  const c = e && e.code;
+  if (c === 'unavailable') return 'AIの深掘りは、claude.ai で開いたときに使えます';
+  if (c === 'not_granted') return 'AIの利用が許可されませんでした。ページを開き直すと、もう一度選べます';
+  if (c === 'rate_limited') return 'プランの利用上限に達したか、混み合っています。少し時間をおいてお試しください';
+  if (c === 'invalid_json' || c === 'empty_completion') return 'AIの答えを読み取れませんでした。もう一度お試しください';
+  if (c === 'refused') return 'この内容ではAIが質問を作れませんでした';
+  return 'AIの深掘りに失敗しました。もう一度お試しください';
 }
 
-/* ========== 画面 ========== */
+/* ================= 深掘りツリー ================= */
+// ノードkey：1段目は "r.<hash>"、子は "<親key>.<hash>"。q.notes[key] に答え、q.ai[key] にAIの子質問
+function topNodes(c, q) {
+  const ai = (q.ai && q.ai.root) || [];
+  return [...ai, ...generateDeepDive(q, c)].map(d => ({ ...d, key: 'r.' + hash(d.q), depth: 1 }));
+}
+function childNodes(c, q, node) {
+  const note = (q.notes || {})[node.key] || '';
+  if (!note.trim() || node.depth >= MAX_DEPTH) return [];
+  const ai = (q.ai && q.ai[node.key]) || [];
+  // すでに聞かれた質問（1段目と、この枝の上の段）は出さない
+  const asked = new Set(topNodes(c, q).map(n => n.q));
+  const idx = nodeIndexes.get(q.id);
+  const parts = node.key.split('.');
+  for (let i = 2; i <= parts.length; i++) { const n = idx && idx.get(parts.slice(0, i).join('.')); if (n) asked.add(n.q); }
+  return [...ai, ...generateFollowUps(node, note, c)]
+    .filter((d, i, arr) => arr.findIndex(x => x.q === d.q) === i && (d.ai || !asked.has(d.q)))
+    .map(d => ({ ...d, key: node.key + '.' + hash(d.q), depth: node.depth + 1 }));
+}
+function chainFor(q, key, nodeIndex) {
+  // key をさかのぼって、質問と答えの連なりを作る
+  const parts = key.split('.'); const chain = [];
+  for (let i = 2; i <= parts.length; i++) {
+    const k = parts.slice(0, i).join('.'); const n = nodeIndex.get(k);
+    if (n) chain.push({ q: n.q, a: (q.notes || {})[k] || '' });
+  }
+  return chain;
+}
+
+/* ================= 画面 ================= */
 let route = { view: 'home', id: null };
 let filter = '';
+const nodeIndexes = new Map(); // question id -> Map(key -> node)
 const STATUS_CLASS = { '内定': 'ok', '見送り': 'gray', 'ES作成中': 'warn' };
 
 function render() {
   const app = $('#app');
+  if (!ready) { app.innerHTML = '<div class="empty">読み込み中…</div>'; return; }
   if (route.view === 'company') {
     const c = state.companies.find(x => x.id === route.id);
     if (c) { app.innerHTML = companyView(c); bindCompany(c); return; }
@@ -436,33 +559,31 @@ function render() {
   }
   app.innerHTML = homeView(); bindHome();
 }
+function daysLeft(d) { if (!d) return null; return Math.ceil((new Date(d + 'T23:59:59') - Date.now()) / 86400000); }
 
-function daysLeft(d) {
-  if (!d) return null;
-  const t = new Date(d + 'T23:59:59'); return Math.ceil((t - Date.now()) / 86400000);
-}
 function homeView() {
   const list = state.companies
-    .filter(c => !filter || (c.name + c.industry + c.status).toLowerCase().includes(filter.toLowerCase()))
-    .sort((a, b) => (a.deadline || '9999') .localeCompare(b.deadline || '9999'));
+    .filter(c => !filter || (c.name + (c.industry || '') + (c.status || '')).toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999'));
   const items = list.map(c => {
     const dl = daysLeft(c.deadline);
     const dlPill = c.deadline && c.status === 'ES作成中'
-      ? `<span class="pill ${dl <= 3 ? 'warn' : 'gray'}">${dl < 0 ? '締切済' : dl === 0 ? '今日締切' : 'あと' + dl + '日'}</span>` : '';
+      ? `<span class="pill ${dl <= 3 ? 'seal' : 'gray'}">${dl < 0 ? '締切済' : dl === 0 ? '今日締切' : 'あと' + dl + '日'}</span>` : '';
     const nq = c.questions.length, nd = c.questions.filter(q => (q.answer || '').trim()).length;
-    return `<div class="card co" data-id="${c.id}" role="button" tabindex="0">
+    const nn = c.questions.reduce((s, q) => s + Object.values(q.notes || {}).filter(v => String(v).trim()).length, 0);
+    return `<div class="card co" data-id="${esc(c.id)}" role="button" tabindex="0">
       <div class="grow">
         <div class="name">${esc(c.name)}</div>
-        <div class="meta">${esc(c.industry || '')}${c.industry ? ' ・ ' : ''}設問 ${nd}/${nq} 回答済${c.deadline ? ' ・ 締切 ' + esc(c.deadline) : ''}</div>
+        <div class="meta">${esc(c.industry || '')}${c.industry ? ' ・ ' : ''}設問 ${nd}/${nq} 回答済 ・ 深掘りメモ ${nn}件${c.deadline ? ' ・ 締切 ' + esc(c.deadline) : ''}</div>
       </div>
       ${dlPill}<span class="pill ${STATUS_CLASS[c.status] || ''}">${esc(c.status || '')}</span>
     </div>`;
   }).join('');
   return `<header class="top"><h1>ES深掘りノート</h1>
       <button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
-    ${state.companies.length ? `<input class="search" id="search" placeholder="企業名・業界・選考状況で検索" value="${esc(filter)}">` : ''}
+    ${state.companies.length ? `<input class="search" id="search" placeholder="企業名・業界・選考状況で検索" value="${esc(filter)}" aria-label="検索">` : ''}
     ${items || (state.companies.length ? '<div class="empty">該当する企業がありません</div>' :
-      `<div class="empty">企業ごとにESを登録すると、<br>設問と回答の内容から<b>面接で聞かれそうな深掘り質問</b>が<br>自動で表示されます。<br><br>右下の「＋ 企業を追加」から始めましょう。</div>`)}
+      `<div class="empty">企業ごとにESを登録すると、<br>面接で聞かれそうな<b>深掘り質問</b>が自動で表示されます。<br>質問への答えをメモすると、<b>その答えへの深掘り</b>も続けて出てきます。<br><br>右下の「＋ 企業を追加」から始めましょう。</div>`)}
     <button class="btn primary fab" id="btnAdd">＋ 企業を追加</button>`;
 }
 function bindHome() {
@@ -495,54 +616,77 @@ function companyView(c) {
     ${qs || '<div class="empty">設問を追加して、ESの回答を書きましょう。</div>'}
     <button class="btn primary fab" id="btnAddQ">＋ 設問を追加</button>`;
 }
-function questionCard(c, q, i) {
+function countHtml(q) {
   const n = countChars(q.answer), lim = Number(q.limit) || 0;
-  let cls = '';
-  if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
-  const types = detectTypes(q.title).map(t => `<span class="pill gray">${t.label}</span>`).join('');
-  return `<section class="card q" data-qid="${q.id}">
+  let cls = ''; if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
+  return `<span class="cnt ${cls}">${n}${lim ? ' / ' + lim : ''} 字${cls === 'short' ? '（8割未満）' : cls === 'over' ? '（超過）' : ''}</span>`;
+}
+function checkHtml(q) {
+  if (!(q.answer || '').trim()) return '';
+  return `<span class="lbl">構成チェック</span>` + structureCheck(q.answer).map(x => `<span class="chk ${x.on ? 'on' : ''}">${x.on ? '✓' : '・'} ${x.label}</span>`).join('');
+}
+function typesHtml(q) { return detectTypes(q.title).map(t => `<span class="pill gray">${t.label}</span>`).join(''); }
+function questionCard(c, q, i) {
+  return `<section class="card q" data-qid="${esc(q.id)}">
     <div class="qhead">
-      <input class="t qt-in" placeholder="設問 ${i + 1}（例：学生時代に力を入れたことは？）" value="${esc(q.title)}" aria-label="設問">
-      <input class="t lim" type="number" min="0" step="50" inputmode="numeric" placeholder="字数" value="${q.limit || ''}" aria-label="文字数制限">
+      <input class="t qt-in" id="qt-${esc(q.id)}" placeholder="設問 ${i + 1}（例：学生時代に力を入れたことは？）" value="${esc(q.title)}" aria-label="設問">
+      <input class="t lim" id="lim-${esc(q.id)}" type="number" min="0" step="50" inputmode="numeric" placeholder="字数" value="${esc(q.limit || '')}" aria-label="文字数制限">
       <button class="icon q-del" aria-label="設問を削除">🗑</button>
     </div>
-    <textarea class="t ans" placeholder="回答を書くと、内容に合わせた深掘り質問が下に表示されます" aria-label="回答">${esc(q.answer)}</textarea>
-    <div class="count"><span class="cnt ${cls}">${n}${lim ? ' / ' + lim : ''} 字${cls === 'short' ? '（8割未満）' : cls === 'over' ? '（超過）' : ''}</span></div>
+    <textarea class="t ans" id="ans-${esc(q.id)}" placeholder="回答を書くと、内容に合わせた深掘り質問が下に表示されます" aria-label="回答">${esc(q.answer)}</textarea>
+    <div class="count">${countHtml(q)}</div>
+    <div class="check" title="記事で紹介されている自己PRの構成要素が入っているかの目安">${checkHtml(q)}</div>
     <div class="dd">
-      <h3>🔍 想定される深掘り質問 <span class="sp"></span>
-        <button class="btn q-copy" type="button">コピー</button>
-        <button class="btn q-ai" type="button">✨ AIで深掘り</button></h3>
-      <div class="types">${types}</div>
+      <div class="dd-h"><h3>想定される深掘り質問</h3>
+        <button class="btn small q-copy" type="button">コピー</button>
+        <button class="btn small ai q-ai" type="button" ${caps.sample ? '' : 'hidden'}>✨ AIで深掘り</button></div>
+      <div class="types">${typesHtml(q)}</div>
       <div class="dq-list">${deepDiveList(c, q)}</div>
     </div>
   </section>`;
 }
-function allDeepDive(c, q) {
-  const rule = generateDeepDive(q, c);
-  const ai = (q.ai || []).map(x => ({ ...x, isAi: true }));
-  return [...ai, ...rule];
+function nodeHtml(c, q, node, idx) {
+  idx.set(node.key, node);
+  const note = (q.notes || {})[node.key] || '';
+  const kids = childNodes(c, q, node);
+  const nKids = kids.length;
+  return `<details class="dq" data-k="${node.key}">
+    <summary><span class="tag ${node.ai ? 'ai' : node.cat}">${node.ai ? 'AI・' : ''}${CAT[node.cat] || 'AI'}</span><span class="qt">${esc(node.q)}</span>
+      <span class="meta">${note.trim() ? '<span class="done" aria-label="答えメモあり">✓</span>' : ''}${nKids ? `<span class="lv">↳${nKids}</span>` : ''}</span></summary>
+    <div class="body">${node.intent ? `<div class="intent">ねらい：${esc(node.intent)}</div>` : ''}
+      <textarea class="t note dq-note" id="n-${esc(q.id)}-${node.key}" placeholder="${node.depth >= MAX_DEPTH ? '答えをメモ' : '答えをメモすると、この答えへの深掘りが出てきます'}" aria-label="答えのメモ">${esc(note)}</textarea>
+      <div class="kids-wrap">${kidsHtml(c, q, node, kids, idx)}</div>
+    </div>
+  </details>`;
+}
+function kidsHtml(c, q, node, kids, idx) {
+  const note = ((q.notes || {})[node.key] || '').trim();
+  if (!note) return '';
+  if (node.depth >= MAX_DEPTH) return '<div class="hint">ここまで答えられれば十分です。最初の質問から通して話す練習をしましょう。</div>';
+  const short = countChars(note) < 25 ? '<div class="hint warn">答えが短いと、面接官は深掘りの糸口を見つけにくくなります。背景・行動・結果まで書いてみましょう。</div>' : '';
+  const err = q.aiErr && q.aiErr[node.key] ? `<div class="err">${esc(q.aiErr[node.key])}</div>` : '';
+  return `<div class="kids">
+      <div class="kids-h"><span>↳ この答えへの深掘り（${node.depth + 1}段目）</span>
+        <button class="btn small ai k-ai" type="button" data-k="${node.key}" ${caps.sample ? '' : 'hidden'}>✨ AIで次の質問</button></div>
+      ${short}${err}${kids.map(k => nodeHtml(c, q, k, idx)).join('')}
+    </div>`;
 }
 function deepDiveList(c, q) {
-  const items = allDeepDive(c, q);
-  const notes = q.notes || {};
-  const hint = !(q.answer || '').trim() ? '<div class="hint">回答を書くと、内容（数字・施策・役割・抽象的な言葉など）に応じた質問が追加されます。</div>' : '';
-  return hint + items.map(d => {
-    const k = hash(d.q), note = notes[k] || '';
-    return `<details class="dq" data-k="${k}">
-      <summary><span class="tag ${d.cat}">${d.isAi ? 'AI・' : ''}${CAT[d.cat] || 'AI'}</span><span class="qt">${esc(d.q)}</span>${note.trim() ? '<span class="done" aria-label="メモあり">✓</span>' : ''}</summary>
-      <div class="body">${d.intent ? `<div class="intent">ねらい：${esc(d.intent)}</div>` : ''}
-        <textarea class="t note dq-note" placeholder="答える内容をメモ">${esc(note)}</textarea></div>
-    </details>`;
-  }).join('') + (q.aiError ? `<div class="err">${esc(q.aiError)}</div>` : '');
+  const idx = new Map(); nodeIndexes.set(q.id, idx);
+  const hint = !(q.answer || '').trim() ? '<div class="hint">回答を書くと、内容（数字・行動・役割・抽象的な言葉など）に合わせた質問が追加されます。</div>' : '';
+  const err = q.aiErr && q.aiErr.root ? `<div class="err">${esc(q.aiErr.root)}</div>` : '';
+  return hint + err + topNodes(c, q).map(n => nodeHtml(c, q, n, idx)).join('');
 }
+function openKeys(container) { return [...container.querySelectorAll('details[open]')].map(d => d.dataset.k); }
+function restoreOpen(container, keys) { keys.forEach(k => { const d = container.querySelector(`details[data-k="${k}"]`); if (d) d.open = true; }); }
 
 function bindCompany(c) {
-  $('#btnBack').onclick = () => { route = { view: 'home', id: null }; render(); };
+  $('#btnBack').onclick = () => { flushAll(); route = { view: 'home', id: null }; render(); };
   $('#btnEditCo').onclick = () => openCompanyDialog(c);
   $('#btnPractice').onclick = () => startPractice(c);
   $('#btnAddQ').onclick = () => {
-    c.questions.push({ id: uid(), title: '', limit: '', answer: '', notes: {}, ai: [] });
-    save(); render();
+    c.questions.push({ id: uid(), title: '', limit: '', answer: '', notes: {}, ai: {} });
+    saveCompany(c); render();
     const cards = document.querySelectorAll('.q'); const last = cards[cards.length - 1];
     last.scrollIntoView({ behavior: 'smooth', block: 'center' }); last.querySelector('.qt-in').focus({ preventScroll: true });
   };
@@ -553,52 +697,73 @@ function bindCompany(c) {
     const refreshList = () => {
       clearTimeout(t);
       t = setTimeout(() => {
-        const open = [...list.querySelectorAll('details[open]')].map(d => d.dataset.k);
-        list.innerHTML = deepDiveList(c, q);
-        open.forEach(k => { const d = list.querySelector(`details[data-k="${k}"]`); if (d) d.open = true; });
-        card.querySelector('.types').innerHTML = detectTypes(q.title).map(t => `<span class="pill gray">${t.label}</span>`).join('');
+        const open = openKeys(list); list.innerHTML = deepDiveList(c, q); restoreOpen(list, open);
+        card.querySelector('.types').innerHTML = typesHtml(q);
+        card.querySelector('.check').innerHTML = checkHtml(q);
       }, 450);
     };
-    const refreshCount = () => {
-      const n = countChars(q.answer), lim = Number(q.limit) || 0, el = card.querySelector('.cnt');
-      let cls = ''; if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
-      el.className = 'cnt ' + cls;
-      el.textContent = `${n}${lim ? ' / ' + lim : ''} 字${cls === 'short' ? '（8割未満）' : cls === 'over' ? '（超過）' : ''}`;
+    card.querySelector('.qt-in').oninput = e => { q.title = e.target.value; saveCompany(c); refreshList(); };
+    card.querySelector('.lim').oninput = e => { q.limit = e.target.value; saveCompany(c); card.querySelector('.count').innerHTML = countHtml(q); };
+    card.querySelector('.ans').oninput = e => { q.answer = e.target.value; saveCompany(c); card.querySelector('.count').innerHTML = countHtml(q); refreshList(); };
+    card.querySelector('.q-del').onclick = async () => {
+      if (!await askConfirm('この設問と深掘りメモを削除しますか？', '削除')) return;
+      c.questions = c.questions.filter(x => x !== q); saveCompany(c, true); render();
     };
-    card.querySelector('.qt-in').oninput = e => { q.title = e.target.value; save(); refreshList(); };
-    card.querySelector('.lim').oninput = e => { q.limit = e.target.value; save(); refreshCount(); };
-    card.querySelector('.ans').oninput = e => { q.answer = e.target.value; save(); refreshCount(); refreshList(); };
-    card.querySelector('.q-del').onclick = () => {
-      if (!confirm('この設問と深掘りメモを削除しますか？')) return;
-      c.questions = c.questions.filter(x => x !== q); save(); render();
-    };
+    // 深掘りへの答え → その答えへの深掘りを更新
+    const kidTimers = {};
     list.addEventListener('input', e => {
       if (!e.target.classList.contains('dq-note')) return;
-      const k = e.target.closest('details').dataset.k;
-      q.notes = q.notes || {}; q.notes[k] = e.target.value; save();
-      const s = e.target.closest('details').querySelector('summary');
-      const has = !!e.target.value.trim(), mark = s.querySelector('.done');
-      if (has && !mark) s.insertAdjacentHTML('beforeend', '<span class="done" aria-label="メモあり">✓</span>');
-      if (!has && mark) mark.remove();
+      const det = e.target.closest('details'); const k = det.dataset.k;
+      q.notes[k] = e.target.value; saveCompany(c);
+      clearTimeout(kidTimers[k]);
+      kidTimers[k] = setTimeout(() => refreshNode(c, q, det), 500);
+    });
+    list.addEventListener('click', async e => {
+      const b = e.target.closest('.k-ai'); if (!b) return;
+      const k = b.dataset.k; const idx = nodeIndexes.get(q.id); const det = b.closest('details');
+      b.disabled = true; b.textContent = '考え中…';
+      q.aiErr = q.aiErr || {}; delete q.aiErr[k];
+      try {
+        const res = await aiQuestions(c, q, chainFor(q, k, idx));
+        q.ai[k] = res; saveCompany(c); toast('次の質問を追加しました');
+      } catch (err) { q.aiErr[k] = aiErrorMessage(err); }
+      refreshNode(c, q, det);
     });
     card.querySelector('.q-copy').onclick = async () => {
-      const txt = `【${c.name}】${q.title}\n` + allDeepDive(c, q).map((d, i) => `${i + 1}. ${d.q}`).join('\n');
-      try { await navigator.clipboard.writeText(txt); toast('コピーしました'); } catch (e) { toast('コピーできませんでした'); }
+      const lines = [`【${c.name}】${q.title}`];
+      const walk = (nodes, indent) => nodes.forEach(n => {
+        lines.push(`${indent}・${n.q}`);
+        const a = (q.notes[n.key] || '').trim(); if (a) lines.push(`${indent}  → ${a.replace(/\n/g, ' ')}`);
+        walk(childNodes(c, q, n), indent + '　');
+      });
+      walk(topNodes(c, q), '');
+      try { await navigator.clipboard.writeText(lines.join('\n')); toast('コピーしました'); } catch (err) { toast('コピーできませんでした'); }
     };
     const aiBtn = card.querySelector('.q-ai');
     aiBtn.onclick = async () => {
-      if (!getKey()) { openSettings(); toast('APIキーを設定してください'); return; }
       if (!(q.answer || '').trim()) { toast('先に回答を書いてください'); return; }
-      aiBtn.disabled = true; aiBtn.textContent = '生成中…'; q.aiError = '';
-      try { q.ai = await aiDeepDive(c, q); save(); toast('AIの深掘り質問を追加しました'); }
-      catch (e) { q.aiError = aiErrorMessage(e); }
+      aiBtn.disabled = true; aiBtn.textContent = '考え中…';
+      q.aiErr = q.aiErr || {}; delete q.aiErr.root;
+      try { q.ai.root = await aiQuestions(c, q, []); saveCompany(c); toast('AIの深掘り質問を追加しました'); }
+      catch (err) { q.aiErr.root = aiErrorMessage(err); }
       aiBtn.disabled = false; aiBtn.textContent = '✨ AIで深掘り';
-      list.innerHTML = deepDiveList(c, q);
+      const open = openKeys(list); list.innerHTML = deepDiveList(c, q); restoreOpen(list, open);
     };
   });
 }
+function refreshNode(c, q, det) {
+  if (!det.isConnected) return;
+  const k = det.dataset.k; const idx = nodeIndexes.get(q.id); const node = idx && idx.get(k); if (!node) return;
+  const wrap = det.querySelector(':scope > .body > .kids-wrap');
+  const open = openKeys(wrap);
+  wrap.innerHTML = kidsHtml(c, q, node, childNodes(c, q, node), idx);
+  restoreOpen(wrap, open);
+  const meta = det.querySelector(':scope > summary .meta');
+  const n = childNodes(c, q, node).length, note = (q.notes[k] || '').trim();
+  meta.innerHTML = `${note ? '<span class="done" aria-label="答えメモあり">✓</span>' : ''}${n ? `<span class="lv">↳${n}</span>` : ''}`;
+}
 
-/* ========== 企業ダイアログ ========== */
+/* ================= 企業ダイアログ ================= */
 let editing = null;
 function openCompanyDialog(c) {
   editing = c;
@@ -610,82 +775,120 @@ function openCompanyDialog(c) {
   $('#cUrl').value = c ? c.url || '' : '';
   $('#cMemo').value = c ? c.memo || '' : '';
   $('#btnDeleteCompany').hidden = !c;
-  $('#dlgCompany').returnValue = '';
   $('#dlgCompany').showModal();
 }
-$('#dlgCompany').addEventListener('close', () => {
-  if ($('#dlgCompany').returnValue !== 'ok') return;
+$('#btnCompanyCancel').onclick = () => $('#dlgCompany').close();
+$('#formCompany').addEventListener('submit', e => {
+  e.preventDefault();
   const v = { name: $('#cName').value.trim(), industry: $('#cIndustry').value.trim(), status: $('#cStatus').value,
     deadline: $('#cDeadline').value, url: $('#cUrl').value.trim(), memo: $('#cMemo').value };
   if (!v.name) return;
-  if (editing) Object.assign(editing, v);
+  let c = editing;
+  if (c) Object.assign(c, v);
   else {
-    const c = { id: uid(), ...v, questions: [
-      { id: uid(), title: '志望動機を教えてください。', limit: '400', answer: '', notes: {}, ai: [] },
-      { id: uid(), title: '学生時代に最も力を入れたことは何ですか。', limit: '400', answer: '', notes: {}, ai: [] },
+    c = { id: uid(), ...v, questions: [
+      { id: uid(), title: '志望動機を教えてください。', limit: '400', answer: '', notes: {}, ai: {} },
+      { id: uid(), title: '学生時代に最も力を入れたことは何ですか。', limit: '400', answer: '', notes: {}, ai: {} },
     ] };
     state.companies.push(c); route = { view: 'company', id: c.id };
   }
-  save(true); render();
+  saveCompany(c, true); $('#dlgCompany').close(); render();
 });
-$('#btnDeleteCompany').onclick = () => {
-  if (!editing || !confirm(`「${editing.name}」とすべての設問を削除しますか？`)) return;
-  state.companies = state.companies.filter(x => x !== editing);
-  save(true); $('#dlgCompany').close(); route = { view: 'home', id: null }; render();
+$('#btnDeleteCompany').onclick = async () => {
+  const c = editing; if (!c) return;
+  $('#dlgCompany').close();
+  if (!await askConfirm(`「${c.name}」とすべての設問・メモを削除しますか？`, '削除')) return;
+  await removeCompany(c); route = { view: 'home', id: null }; render(); toast('削除しました');
 };
 
-/* ========== 設定 ========== */
-function openSettings() { $('#sKey').value = getKey(); $('#dlgSettings').showModal(); }
+/* ================= 設定・バックアップ ================= */
+function openSettings() {
+  $('#aiStatus').textContent = caps.sample
+    ? 'AIの深掘りは、あなたの Claude のプランの範囲で動きます（APIキーや追加料金は不要です）。'
+    : 'AIの深掘りは、claude.ai でこのページを開いたときに使えます。ここではアプリ内の自動深掘りだけが動きます。';
+  $('#storeStatus').textContent = caps.col
+    ? 'データは claude.ai 上の、あなただけが読める保存場所に保存されています。'
+    : 'データはこの端末のブラウザに保存されています。機種変更の前には書き出してください。';
+  $('#dlgSettings').showModal();
+}
 $('#btnSettingsClose').onclick = () => $('#dlgSettings').close();
-$('#btnSettingsSave').onclick = () => {
-  try { const k = $('#sKey').value.trim(); if (k) localStorage.setItem(KEY_API, k); else localStorage.removeItem(KEY_API); toast('保存しました'); }
-  catch (e) { toast('保存できませんでした'); }
-  $('#dlgSettings').close();
-};
-$('#btnExport').onclick = () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `es-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+$('#btnExport').onclick = async () => {
+  flushAll();
+  const json = JSON.stringify(state, null, 2), filename = `es-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  if (caps.downloads) {
+    try { await caps.downloads.save({ filename, data: json }); } catch (e) { toast('書き出しを中止しました'); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 $('#btnImport').onclick = () => $('#fileImport').click();
 $('#fileImport').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try {
-    const d = JSON.parse(await f.text());
-    if (!d || !Array.isArray(d.companies)) throw new Error();
-    if (!confirm(`${d.companies.length}社のデータを読み込みます。今のデータは置き換えられます。よろしいですか？`)) return;
-    state = d; save(true); route = { view: 'home', id: null }; $('#dlgSettings').close(); render(); toast('読み込みました');
-  } catch (err) { toast('読み込めないファイルです'); }
-  e.target.value = '';
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let d;
+  try { d = JSON.parse(await f.text()); if (!d || !Array.isArray(d.companies)) throw 0; }
+  catch (err) { toast('読み込めないファイルです'); return; }
+  $('#dlgSettings').close();
+  if (!await askConfirm(`${d.companies.length}社のデータを読み込みます。同じ企業のデータは上書きされます。`, '読み込む')) return;
+  d.companies.forEach(c => {
+    if (!c || !c.id || !c.name) return;
+    normalize(c);
+    const i = state.companies.findIndex(x => x.id === c.id);
+    if (i >= 0) state.companies[i] = c; else state.companies.push(c);
+    saveCompany(c, true);
+  });
+  route = { view: 'home', id: null }; render(); toast('読み込みました');
 };
 
-/* ========== 面接練習 ========== */
+/* ================= 面接練習（深掘りの連鎖つき） ================= */
 let practice = null;
 function startPractice(c) {
   const pool = [];
-  c.questions.forEach(q => allDeepDive(c, q).forEach(d => pool.push({ q, d, k: hash(d.q) })));
+  c.questions.forEach(q => {
+    const idx = new Map(); nodeIndexes.set(q.id, idx);
+    topNodes(c, q).forEach(n => { idx.set(n.key, n); pool.push({ q, node: n }); });
+  });
   if (!pool.length) return;
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  practice = { c, pool, i: 0 };
+  practice = { c, pool, i: 0, cur: pool[0] };
   showPractice(); $('#dlgPractice').showModal();
 }
 function showPractice() {
-  const { c, pool, i } = practice, it = pool[i];
-  $('#pTitle').textContent = `面接練習 ${i + 1} / ${pool.length}`;
-  $('#pFrom').textContent = `${c.name} ・ ${it.q.title || '設問'}`;
-  $('#pQ').textContent = it.d.q;
-  $('#pCtx').textContent = it.q.answer ? 'あなたのES：\n' + it.q.answer : '（この設問は未回答です）';
-  $('#pNote').value = (it.q.notes || {})[it.k] || '';
-  $('#pNext').textContent = i + 1 < pool.length ? '次の質問' : '最初から';
+  const { c, cur } = practice, q = cur.q, node = cur.node;
+  const idx = nodeIndexes.get(q.id);
+  const chain = chainFor(q, node.key, idx).slice(0, -1);
+  $('#pTitle').textContent = node.depth > 1 ? `面接練習 ・ 深掘り${node.depth}段目` : `面接練習 ${practice.i + 1} / ${practice.pool.length}`;
+  $('#pFrom').textContent = `${c.name} ・ ${q.title || '設問'}`;
+  $('#pChain').textContent = chain.length
+    ? chain.map(x => `Q. ${x.q}\nA. ${x.a}`).join('\n')
+    : (q.answer ? 'あなたのES：\n' + q.answer : '（この設問は未回答です）');
+  $('#pQ').textContent = node.q;
+  $('#pNote').value = q.notes[node.key] || '';
+  updateDeeper();
 }
-$('#pNote').oninput = e => { const it = practice.pool[practice.i]; it.q.notes = it.q.notes || {}; it.q.notes[it.k] = e.target.value; save(); };
-$('#pNext').onclick = () => { practice.i = (practice.i + 1) % practice.pool.length; showPractice(); };
+function updateDeeper() {
+  const { cur } = practice;
+  const b = $('#pDeeper');
+  b.disabled = !(cur.q.notes[cur.node.key] || '').trim() || cur.node.depth >= MAX_DEPTH;
+  b.title = b.disabled ? '答えをメモすると、この答えへの深掘りに進めます' : '';
+}
+$('#pNote').oninput = e => {
+  const { c, cur } = practice; cur.q.notes[cur.node.key] = e.target.value; saveCompany(c); updateDeeper();
+};
+$('#pDeeper').onclick = () => {
+  const { c, cur } = practice; const idx = nodeIndexes.get(cur.q.id);
+  const kids = childNodes(c, cur.q, cur.node); if (!kids.length) return;
+  kids.forEach(k => idx.set(k.key, k));
+  const next = kids.find(k => !(cur.q.notes[k.key] || '').trim()) || kids[0];
+  practice.cur = { q: cur.q, node: next }; showPractice();
+};
+$('#pNext').onclick = () => { practice.i = (practice.i + 1) % practice.pool.length; practice.cur = practice.pool[practice.i]; showPractice(); };
 $('#pClose').onclick = () => $('#dlgPractice').close();
-$('#dlgPractice').addEventListener('close', () => { save(true); if (route.view === 'company') render(); });
+$('#dlgPractice').addEventListener('close', () => { flushAll(); if (route.view === 'company') render(); });
 
 render();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+initStore();
 </script>
+<!--ARTIFACT-END-->
 </body>
 </html>
