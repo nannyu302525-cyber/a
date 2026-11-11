@@ -118,7 +118,12 @@
   body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);}
   .chat{display:flex;flex-direction:column;min-height:calc(100vh - 32px);}
   .chat-top{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;margin-bottom:6px;padding-top:4px;}
-  .chat-ctx{font-size:.8rem;color:var(--sub);margin:-10px 0 12px;}
+  .chat-top .top{margin-bottom:6px;}
+  .chat-ctx{font-size:.8rem;color:var(--sub);margin:0 0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .goal{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px;}
+  .goal-left{margin-left:auto;font-size:.76rem;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .end{display:flex;flex-direction:column;gap:8px;padding-top:6px;}
+  .end .big{padding:12px 16px;font-size:1rem;align-items:center;}
   .msgs{display:flex;flex-direction:column;gap:10px;flex:1;padding-bottom:14px;}
   .msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:.95rem;overflow-wrap:anywhere;}
   .msg.me,.msg p{white-space:pre-wrap;}
@@ -628,26 +633,44 @@ function transcriptText(chat) {
     return '';
   }).filter(Boolean).join('\n');
 }
-async function aiTurn(ctx) {
+// 1つの話題のゴール：この5つの材料がそろうか、MAX_TURNS 回答えたら終わり
+const GOALS = [
+  ['結論', /です|ます|だと思|と考え/],
+  ['きっかけ・理由', /きっかけ|なぜなら|理由|から(です|だ)|ので|と思って|気になって|たくて/],
+  ['具体的な行動', /しました|した。|してみ|やって|取り組|提案|作っ|始め|続け|工夫|話し/],
+  ['結果', /結果|達成|成功|できるように|になりました|になった|増え|減っ|短縮|上が|下が|[0-9０-９]/],
+  ['学び・活かし方', /学ん|学び|気づ|活か|今後|これから|大切だと|身につ/],
+];
+const GOAL_NAMES = GOALS.map(g => g[0]);
+const MAX_TURNS = 5;
+function topicSlice(chat) { const t = currentTopic(chat); return t < 0 ? chat : chat.slice(t); }
+async function aiTurn(ctx, left) {
   const prompt = `あなたは、就活生の自己分析とES作りを手伝う、話しやすいキャリアアドバイザーです。面接官のように深掘りの質問をしながら、本人のざっくばらんな答えを一緒に整理して、面接やESで使える言葉にしていきます。
 
 ${ctxText(ctx)}
 
 <conversation>
-${transcriptText(ctx.thread.chat)}
+${transcriptText(topicSlice(ctx.thread.chat))}
 </conversation>
 
-最後の本人の答えに対して、次の3つを返してください。
-- reply：1〜3文。答えの要点を、面接やESで使える言葉に言い換えて整理する（例：「つまり〜ということですね」）。良い材料があれば具体的に伝え、足りない点があれば一言添える。説教っぽくしない
-- question：次に聞く深掘り質問を1つ。最後の答えの具体的な言葉を拾い、なぜそうしたか・具体的な場面・数字・そこから得たもの・ほかの場面でも同じか、などを掘る。テーマが十分深まっていれば、同じテーマの別の角度に移る
-- intent：その質問で引き出したいこと（10〜20字）
+この話題のゴールは、回答を作るための5つの材料「${GOAL_NAMES.join('」「')}」を本人から引き出すことです。質問できるのは、あと最大${left}回です。
+
+最後の本人の答えに対して、次を返してください。
+- covered：この会話の中で、すでに本人が話した材料の名前の配列（上の5つの名前から選ぶ）。ひとことでも触れていれば含めてよい
+- done：5つがそろった、または残り回数が0なら true。そうでなければ false
+- reply：1〜3文。答えの要点を、面接やESで使える言葉に言い換えて整理する（例：「つまり〜ということですね」）。良い材料は具体的に伝える。説教っぽくしない。done が true のときは、ここまでの話を一言でまとめて締める
+- question：done が false のときだけ。まだ出ていない材料のうち一番大事なものを引き出す質問を1つ。最後の答えの具体的な言葉を拾う。done が true なら空文字
+- intent：その質問で引き出したい材料（10〜20字）
 話し言葉で、やさしく、短く。会話に出ていないことを事実として扱わない。
 
 出力は次の形のJSONだけにしてください（前後に文章を付けない）：
-{"reply":"…","question":"…","intent":"…"}`;
+{"covered":["結論"],"done":false,"reply":"…","question":"…","intent":"…"}`;
   const r = await caps.sample.json(prompt, { modelTier: 'quick' });
-  if (!r || typeof r.question !== 'string' || !r.question.trim()) throw { code: 'invalid_json' };
-  return { role: 'ai', reply: String(r.reply || '').trim(), q: r.question.trim(), intent: String(r.intent || '').trim() };
+  if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
+  const q = typeof r.question === 'string' ? r.question.trim() : '';
+  const done = r.done === true || !q;
+  return { role: 'ai', reply: String(r.reply || '').trim(), q: done ? '' : q, intent: done ? '' : String(r.intent || '').trim(),
+    covered: (Array.isArray(r.covered) ? r.covered : []).filter(x => GOAL_NAMES.includes(x)), done };
 }
 const INSIGHT_CATS = ['強み', '価値観', 'エピソード', '弱み', '志望軸'];
 async function aiSummarize(ctx, topicQ) {
@@ -660,7 +683,7 @@ async function aiSummarize(ctx, topicQ) {
 ${ctxText(ctx)}
 
 <conversation>
-${transcriptText(ctx.thread.chat)}
+${transcriptText(topicSlice(ctx.thread.chat))}
 </conversation>
 
 ルール：
@@ -1130,40 +1153,68 @@ function msgHtml(m, i, ctx) {
   if (m.role === 'note') return `<div class="note">${esc(m.text)}</div>`;
   if (m.role === 'sum') return sumHtml(m, i, ctx.kind);
   return `<div class="msg ai">${m.topic ? '<div class="tlabel">質問</div>' : ''}${m.reply ? `<p class="reply">${esc(m.reply)}</p>` : ''}
-    <p class="ask">${esc(m.q)}</p>${m.intent ? `<p class="intent">ねらい：${esc(m.intent)}</p>` : ''}</div>`;
+    ${m.q ? `<p class="ask">${esc(m.q)}</p>` : ''}${m.intent ? `<p class="intent">ねらい：${esc(m.intent)}</p>` : ''}</div>`;
+}
+// 話題の進み具合（ゴールまでの残り）
+function topicState(chat) {
+  const t = currentTopic(chat);
+  if (t < 0) return null;
+  const rest = chat.slice(t + 1), m = chat[t];
+  return { t, m, turns: rest.filter(x => x.role === 'me').length, max: m.max || MAX_TURNS, got: m.got || [],
+    summed: rest.some(x => x.role === 'sum') };
+}
+function goalHtml(st) {
+  if (!st) return '';
+  const left = Math.max(0, st.max - st.turns);
+  return `<div class="goal" aria-label="この話題のゴール">${GOAL_NAMES.map(g => `<span class="chk ${st.got.includes(g) ? 'on' : ''}">${st.got.includes(g) ? '✓' : '・'} ${g}</span>`).join('')}
+    <span class="goal-left">${st.m.done ? (st.summed || st.got.length === GOAL_NAMES.length ? 'ゴール！' : 'ここまで') : `あと最大${left}問`}</span></div>`;
 }
 function renderChat(ctx) {
   const key = route.id + '/' + route.qid;
   if (chatUi.key !== key) { chatUi = { busy: '', aiOff: false, key }; if (!ctx.thread.chat.length) addTopic(ctx); prepareAiTopics(ctx); }
   const chat = ctx.thread.chat;
-  const t = currentTopic(chat);
-  const answered = t >= 0 && chat.slice(t + 1).some(m => m.role === 'me');
+  const st = topicState(chat);
+  const answered = st && st.turns > 0, done = st && st.m.done;
   const busy = chatUi.busy;
-  $('#app').innerHTML = `<div class="chat">
-    <header class="top chat-top"><button class="icon" id="chBack" aria-label="戻る">←</button>
-      <h1>${esc(ctx.title)}</h1></header>
-    ${ctx.kind === 'es' ? `<div class="chat-ctx">設問：${esc(ctx.q.title)}</div>` : ''}
-    <div class="msgs" id="msgs">${chat.map((m, i) => msgHtml(m, i, ctx)).join('')}
-      ${busy ? `<div class="msg ai typing"><span class="spin"></span>${esc(busy)}</div>` : ''}</div>
-    <div class="composer">
+  const composer = done && !busy ? `
+      <div class="end">
+        <p class="muted">${st.summed ? 'この話題はゴールです。回答は上にまとめてあります。' : 'この話題はここまでにしましょう。'}</p>
+        ${caps.sample && !st.summed ? '<button class="big" type="button" id="chSum">📝 回答にまとめる</button>' : ''}
+        <button class="big primary" type="button" id="chNext">次の質問へ</button>
+        <button class="big" type="button" id="chEnd">終わる</button>
+        <button class="btn link" type="button" id="chMore">この話題をもう少し続ける</button>
+      </div>` : `
       <div class="chips">
-        ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${answered && !busy ? '' : 'disabled'}>📝 回答にまとめる</button>` : ''}
+        ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${answered && !busy ? '' : 'disabled'}>📝 ここで回答にまとめる</button>` : ''}
         <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ 別の質問へ</button>
       </div>
       <div class="send-row">
         <textarea class="t" id="chIn" rows="2" placeholder="ざっくばらんに答えてOK" aria-label="答え" ${busy ? 'disabled' : ''}>${esc(chatUi.draft || '')}</textarea>
         <button class="btn primary" type="button" id="chSend" ${busy ? 'disabled' : ''}>送信</button>
-      </div>
-    </div></div>`;
+      </div>`;
+  $('#app').innerHTML = `<div class="chat">
+    <div class="chat-top"><header class="top"><button class="icon" id="chBack" aria-label="戻る">←</button>
+      <h1>${esc(ctx.title)}</h1></header>
+      ${ctx.kind === 'es' ? `<div class="chat-ctx">設問：${esc(ctx.q.title)}</div>` : ''}
+      ${goalHtml(st)}</div>
+    <div class="msgs" id="msgs">${chat.map((m, i) => msgHtml(m, i, ctx)).join('')}
+      ${busy ? `<div class="msg ai typing"><span class="spin"></span>${esc(busy)}</div>` : ''}</div>
+    <div class="composer">${composer}</div></div>`;
   window.scrollTo(0, document.body.scrollHeight);
-  $('#chBack').onclick = () => { chatUi.key = ''; ctx.back(); };
+  const leave = () => { chatUi.key = ''; ctx.back(); };
+  $('#chBack').onclick = leave;
+  const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('#chSend', () => sendAnswer(ctx));
+  on('#chNext', () => { addTopic(ctx); renderChat(ctx); });
+  on('#chSum', () => summarize(ctx));
+  on('#chEnd', leave);
+  on('#chMore', () => { st.m.done = false; st.m.max = st.turns + 3; ctx.save(); renderChat(ctx); });
   const inp = $('#chIn');
-  inp.oninput = () => { chatUi.draft = inp.value; };
-  inp.onkeydown = e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendAnswer(ctx); } };
-  if (!busy && matchMedia('(pointer:fine)').matches) inp.focus();
-  $('#chSend').onclick = () => sendAnswer(ctx);
-  $('#chNext').onclick = () => { addTopic(ctx); renderChat(ctx); };
-  const sb = $('#chSum'); if (sb) sb.onclick = () => summarize(ctx);
+  if (inp) {
+    inp.oninput = () => { chatUi.draft = inp.value; };
+    inp.onkeydown = e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendAnswer(ctx); } };
+    if (!busy && matchMedia('(pointer:fine)').matches) inp.focus();
+  }
   bindSumActions($('#msgs'), chat, ctx);
 }
 async function sendAnswer(ctx) {
@@ -1171,22 +1222,41 @@ async function sendAnswer(ctx) {
   if (!text || chatUi.busy) return;
   chatUi.draft = '';
   pushMsg(ctx, { role: 'me', text });
-  let next = null;
+  const st = topicState(ctx.thread.chat), topic = st.m;
+  const left = st.max - st.turns;
+  let next = null, done = left <= 0;
   if (caps.sample && !chatUi.aiOff) {
     chatUi.busy = '考えています…'; renderChat(ctx);
-    try { next = await aiTurn(ctx); }
-    catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { chatUi.aiOff = true; toast(aiErrorMessage(e)); } }
+    try {
+      next = await aiTurn(ctx, Math.max(0, left));
+      topic.got = GOAL_NAMES.filter(g => (topic.got || []).includes(g) || next.covered.includes(g));
+      done = done || next.done || topic.got.length === GOAL_NAMES.length;
+      if (done) { next.q = ''; next.intent = ''; }
+    } catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { chatUi.aiOff = true; toast(aiErrorMessage(e)); } }
     chatUi.busy = '';
   }
-  if (!next) next = ruleFollowUp(ctx, text);
-  if (next) { ctx.thread.asked = [...(ctx.thread.asked || []), next.q]; pushMsg(ctx, next); }
-  else addTopic(ctx);
+  if (!next) {
+    // AIなし：答えの文面から材料を数える
+    const mine = ctx.thread.chat.slice(st.t + 1).filter(m => m.role === 'me').map(m => m.text).join('\n');
+    topic.got = GOALS.filter(([, re]) => re.test(mine)).map(g => g[0]);
+    done = done || topic.got.length === GOAL_NAMES.length;
+    if (!done) next = ruleFollowUp(ctx, text);
+    if (!next) done = true;
+  }
+  if (next && (next.q || next.reply)) {
+    if (next.q) ctx.thread.asked = [...(ctx.thread.asked || []), next.q];
+    pushMsg(ctx, { role: 'ai', reply: next.reply || '', q: next.q || '', intent: next.intent || '' });
+  }
+  if (done) {
+    topic.done = true; ctx.save();
+    if (caps.sample && !chatUi.aiOff) { pushMsg(ctx, { role: 'note', text: '材料がそろいました。回答にまとめます。' }); return summarize(ctx); }
+  }
   if (chatCtx() && route.view === 'chat') renderChat(ctx);
 }
 // AIが使えないときは、アプリ内の深掘りで続ける
 function ruleFollowUp(ctx, text) {
   const asked = new Set(ctx.thread.asked || []);
-  const last = [...ctx.thread.chat].reverse().find(m => m.role === 'ai') || { q: '' };
+  const last = [...ctx.thread.chat].reverse().find(m => m.role === 'ai' && m.q) || { q: '' };
   const co = ctx.kind === 'es' ? ctx.company : { name: '' };
   const f = generateFollowUps({ cat: 'ai', q: last.q }, text, co).find(x => !asked.has(x.q));
   return f ? { role: 'ai', reply: '', q: f.q, intent: f.intent || '' } : null;
@@ -1203,6 +1273,7 @@ async function summarize(ctx) {
     s.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push({ ...x, from, at: Date.now() }));
     saveProfile();
   } catch (e) { toast(aiErrorMessage(e).replace('AIの深掘り', 'まとめ')); }
+  chat[t].done = true; ctx.save();
   chatUi.busy = '';
   if (route.view === 'chat') renderChat(ctx);
 }
