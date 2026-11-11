@@ -88,7 +88,6 @@
   .pill.intern{background:var(--intern-bg);color:var(--intern);}
   .co-row{display:flex;gap:8px;align-items:stretch;}
   .co-row .row-btn{flex:1;min-width:0;}
-  .row-btn .pills{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px;}
   .mp{flex:none;display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;width:64px;text-align:center;line-height:1.3;border:1px solid var(--line);border-radius:14px;background:var(--card);
     text-decoration:none;font-size:.78rem;font-weight:700;color:var(--accent);white-space:nowrap;}
   .mp:hover{border-color:var(--accent);}
@@ -115,28 +114,46 @@
   .qa .qa{margin:10px 0 0;}
   .qa .q{font-size:.82rem;color:var(--sub);font-weight:700;}
   .qa .a{white-space:pre-wrap;font-size:.92rem;}
-  /* 面接練習 */
-  .iv{display:flex;flex-direction:column;min-height:calc(100vh - 32px);}
-  .iv-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px;}
-  .bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden;}
-  .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
-  .iv-num{font-size:.8rem;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .iv-ctx{font-size:.8rem;color:var(--sub);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .iv-prev{font-size:.85rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px;}
-  .iv-prev .q{color:var(--sub);font-size:.78rem;}
-  .iv-prev .a{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-  .iv-level{display:inline-block;font-size:.72rem;font-weight:700;color:var(--accent);background:var(--soft);border-radius:6px;padding:1px 8px;margin-bottom:8px;}
-  .iv-q{font-family:var(--f-head);font-size:1.32rem;font-weight:700;line-height:1.55;margin-bottom:6px;text-wrap:balance;}
-  .iv-intent{font-size:.82rem;color:var(--sub);margin-bottom:14px;}
-  .iv textarea.t{min-height:140px;font-size:1rem;}
-  .iv-partial{font-size:.85rem;color:var(--sub);min-height:1.4em;margin-top:4px;}
-  .iv-actions{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;padding:14px 0 calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg);margin-top:auto;}
-  .iv-actions .btn.primary{flex:1;padding:14px;font-size:1.02rem;border-radius:14px;}
-  .mic{border:1px solid var(--line);background:var(--card);border-radius:14px;width:54px;height:54px;font-size:1.3rem;flex:none;}
-  .mic.on{background:var(--seal-bg);border-color:var(--seal);color:var(--seal);}
-  .thinking{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:.95rem;padding:24px 0;}
-  .done-box{text-align:center;padding:40px 8px;}
-  .done-box h2{font-family:var(--f-head);font-size:1.3rem;margin-bottom:8px;}
+  /* 深掘りの会話 */
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);}
+  .chat{display:flex;flex-direction:column;min-height:calc(100vh - 32px);}
+  .chat-top{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;margin-bottom:6px;padding-top:4px;}
+  .chat-ctx{font-size:.8rem;color:var(--sub);margin:-10px 0 12px;}
+  .msgs{display:flex;flex-direction:column;gap:10px;flex:1;padding-bottom:14px;}
+  .msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:.95rem;overflow-wrap:anywhere;}
+  .msg.me,.msg p{white-space:pre-wrap;}
+  .msg.ai{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-top-left-radius:6px;}
+  .msg.me{background:var(--accent);color:var(--accent-ink);align-self:flex-end;border-top-right-radius:6px;}
+  .msg .tlabel{font-size:.7rem;font-weight:700;color:var(--accent);margin-bottom:2px;}
+  .msg .reply{color:var(--sub);margin-bottom:6px;}
+  .msg .ask{font-weight:700;}
+  .msg .intent{font-size:.75rem;color:var(--sub);margin-top:4px;}
+  .msg.typing{display:flex;gap:8px;align-items:center;color:var(--sub);}
+  .note{align-self:center;font-size:.78rem;color:var(--sub);text-align:center;}
+  .sum{background:var(--card);border:1.5px solid var(--accent);border-radius:16px;padding:14px;margin-bottom:10px;}
+  .sum-h{font-family:var(--f-head);font-weight:700;}
+  .sum .lbl{font-size:.76rem;color:var(--sub);font-weight:700;margin-top:10px;}
+  .sum .lbl .over{color:var(--seal);}
+  .sum .out{white-space:pre-wrap;font-size:.93rem;line-height:1.8;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:4px;overflow-wrap:anywhere;}
+  .sum .acts{display:flex;gap:6px;justify-content:flex-end;margin-top:6px;}
+  .pts{padding-left:1.2em;font-size:.88rem;}
+  .ins-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+  .ins-chips .pill{white-space:normal;}
+  .composer{position:sticky;bottom:0;background:var(--bg);padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);}
+  .chips{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .send-row{display:flex;gap:8px;align-items:flex-end;}
+  .send-row textarea.t{min-height:52px;max-height:40vh;flex:1;min-width:0;}
+  .send-row .btn{padding:12px 16px;}
+  .ins{display:flex;gap:8px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 6px 10px 14px;}
+  .ins .grow{flex:1;min-width:0;}
+  .ins .meta{font-size:.75rem;color:var(--sub);}
+  .icon.small-x{min-width:32px;height:32px;font-size:.85rem;}
+  details.more{margin-top:16px;}
+  details.more summary{cursor:pointer;color:var(--sub);font-size:.88rem;padding:6px 0;}
+  .hist{border-left:2px solid var(--line);padding-left:12px;margin:10px 0;}
+  .hist .a{white-space:pre-wrap;font-size:.88rem;margin-bottom:6px;}
+  .hist .meta{font-size:.75rem;color:var(--sub);}
+  .row-btn .pills{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px;}
   .err{font-size:.85rem;color:var(--seal);margin:6px 0;}
   dialog{border:none;border-radius:18px;background:var(--card);color:var(--ink);padding:20px;width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 48px);margin:auto;}
   dialog::backdrop{background:rgba(10,12,20,.5);}
@@ -281,8 +298,8 @@ function askConfirm(msg, okLabel) {
 
 /* ================= 保存（claude.aiでは本人だけのDB、それ以外はこの端末） ================= */
 const LOCAL_KEY = 'es-deepdive-v1';
-const caps = { db: null, col: null, sample: null, downloads: null, images: null, dictation: null };
-let state = { companies: [] };
+const caps = { db: null, col: null, sample: null, downloads: null, images: null };
+let state = { companies: [], profile: normProfile() };
 let ready = false;
 const saveTimers = {};
 
@@ -291,11 +308,24 @@ function loadLocal() {
   return { companies: [] };
 }
 function writeLocal() { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(state)); } catch (e) {} }
+function normQ(q) {
+  q.notes = q.notes || {}; q.ai = Array.isArray(q.ai) ? { root: q.ai } : (q.ai || {});
+  q.thread = q.thread || {}; q.thread.chat = q.thread.chat || []; q.thread.asked = q.thread.asked || [];
+  q.esHistory = q.esHistory || [];
+  return q;
+}
 function normalize(c) {
-  c.questions = Array.isArray(c.questions) ? c.questions : [];
-  c.questions.forEach(q => { q.notes = q.notes || {}; q.ai = Array.isArray(q.ai) ? { root: q.ai } : (q.ai || {}); });
+  c.questions = (Array.isArray(c.questions) ? c.questions : []).map(normQ);
   return c;
 }
+// 自己分析ノート（企業とは別の1件）
+function normProfile(p) {
+  p = p || {}; p.id = '_profile';
+  p.insights = Array.isArray(p.insights) ? p.insights : [];
+  p.thread = p.thread || {}; p.thread.chat = p.thread.chat || []; p.thread.asked = p.thread.asked || [];
+  return p;
+}
+function saveProfile(now) { saveCompany(state.profile, now); }
 function saveCompany(c, now) {
   clearTimeout(saveTimers[c.id]);
   const run = async () => {
@@ -312,12 +342,12 @@ async function removeCompany(c) {
   if (caps.col) { try { await caps.col.doc(c.id).delete(); } catch (e) { toast('削除に失敗しました'); } }
   else writeLocal();
 }
-function flushAll() { Object.keys(saveTimers).forEach(id => { const c = state.companies.find(x => x.id === id); if (c) saveCompany(c, true); }); }
+function flushAll() { Object.keys(saveTimers).forEach(id => { const c = id === '_profile' ? state.profile : state.companies.find(x => x.id === id); if (c) saveCompany(c, true); }); }
 window.addEventListener('pagehide', flushAll);
 
 async function initStore() {
   const hasClaude = typeof window.claude === 'object' && window.claude && typeof window.claude.use === 'function';
-  if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); ready = true; render(); registerSW(); return; }
+  if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile); ready = true; render(); registerSW(); return; }
   // claude.ai の中：AIはあなたのプランで、データはあなた専用の保存場所へ
   window.claude.use('sample').then(async s => {
     caps.sample = s;
@@ -325,7 +355,6 @@ async function initStore() {
     if (ready) render();
   });
   window.claude.use('downloads').then(d => { caps.downloads = d; });
-  window.claude.use('dictation').then(d => { initDictation(d); if (ready && route.view === 'iv') render(); });
   const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
   const id = user ? await user.id().catch(() => null) : null;
   if (db && id) {
@@ -333,11 +362,12 @@ async function initStore() {
     const slow = setTimeout(() => { if (!ready) { $('#app').innerHTML = `<div class="empty">保存データに接続できません。<br>通信状況を確認して、ページを開き直してください。</div>`; } }, 10000);
     try {
       const snap = await caps.col.get();
-      state = { companies: snap.docs.map(d => normalize({ ...d.data(), id: d.id })) };
+      const docs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+      state = { companies: docs.filter(d => d.id !== '_profile').map(normalize), profile: normProfile(docs.find(d => d.id === '_profile')) };
     } catch (e) { toast('データを読み込めませんでした'); }
     clearTimeout(slow);
   } else {
-    state = loadLocal(); state.companies.forEach(normalize);
+    state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile);
   }
   ready = true; render();
 }
@@ -527,7 +557,7 @@ function generateFollowUps(parent, note, company) {
   const { out, add } = makeAdder();
   const ans = String(note || '').trim(); if (!ans) return [];
   const first = sentences(ans)[0] || '';
-  if (first && [...first].length >= 8) add('why', `「${clip(first.replace(/[。！？]$/, ''), 30)}」とのことですが、なぜそう言えるのですか？`, '答えの根拠をさらに問う');
+  if (first && [...first].length >= 8) add('why', `「${clip(first.replace(/[。！？]$/, ''), 30)}」について、もう少し詳しく教えてください。なぜそうしたのですか？`, 'きっかけと理由を引き出す');
   analyzeText(ans, add, co);
   (CHAIN[parent.cat] || CHAIN.ai).forEach(([c, q, i]) => add(c, q, i));
   return out.filter(x => x.q !== parent.q).slice(0, 4);
@@ -576,29 +606,82 @@ function aiErrorMessage(e) {
   return 'AIの深掘りに失敗しました。もう一度お試しください';
 }
 
-// 練習中の次の深掘り（速いモデルで1問だけ）
-async function aiFollowUp(company, q, chain) {
-  if (!caps.sample) return null;
-  const prompt = `あなたは新卒採用の面接官です。就活生との面接のやり取りを読み、最後の答えに対して次に聞く深掘り質問を1つだけ作ってください。
+/* ---- 一緒にブラッシュアップする会話（claude.ai のプラン内で動く） ---- */
+function insightText(max) {
+  const xs = (state.profile.insights || []).slice(-max);
+  return xs.length ? xs.map(x => `- ${x.cat}：${x.text}`).join('\n') : 'まだなし';
+}
+function ctxText(ctx) {
+  if (ctx.kind === 'self') return `<purpose>自己分析（特定の企業向けではない）</purpose>\n<self_analysis_notes>\n${insightText(25)}\n</self_analysis_notes>`;
+  const c = ctx.company, q = ctx.q;
+  return `<company>${c.name}${c.industry ? '（' + c.industry + '）' : ''}${c.status ? ' / 選考状況：' + c.status : ''}</company>
+<company_memo>${c.memo || 'なし'}</company_memo>
+<es_question>${q.title || '（設問未入力）'}${Number(q.limit) ? `（${q.limit}字以内）` : ''}</es_question>
+<es_answer>${q.answer || '（まだ書いていない）'}</es_answer>
+<self_analysis_notes>\n${insightText(25)}\n</self_analysis_notes>`;
+}
+function transcriptText(chat) {
+  return chat.slice(-24).map(m => {
+    if (m.role === 'ai') return `アドバイザー：${m.reply ? m.reply + ' ' : ''}${m.q}`;
+    if (m.role === 'me') return `本人：${m.text}`;
+    if (m.role === 'sum') return '（ここまでの内容を回答にまとめた）';
+    return '';
+  }).filter(Boolean).join('\n');
+}
+async function aiTurn(ctx) {
+  const prompt = `あなたは、就活生の自己分析とES作りを手伝う、話しやすいキャリアアドバイザーです。面接官のように深掘りの質問をしながら、本人のざっくばらんな答えを一緒に整理して、面接やESで使える言葉にしていきます。
 
-<company>${company.name}${company.industry ? '（' + company.industry + '）' : ''}</company>
-<es_question>${q.title || ''}</es_question>
-<es_answer>${q.answer || '（未回答）'}</es_answer>
-<interview>
-${chainText(chain)}
-</interview>
+${ctxText(ctx)}
 
-条件:
-- 最後の答えの中の具体的な言葉や数字を引用して、本人にしか答えられない質問にする
-- 答えの根拠が弱いところ、具体性が足りないところ、「なぜ」がまだ語られていないところを突く
-- それまでの質問と重複させない
-- 面接で実際に口頭で聞くような、短く自然な日本語にする（1〜2文）
+<conversation>
+${transcriptText(ctx.thread.chat)}
+</conversation>
+
+最後の本人の答えに対して、次の3つを返してください。
+- reply：1〜3文。答えの要点を、面接やESで使える言葉に言い換えて整理する（例：「つまり〜ということですね」）。良い材料があれば具体的に伝え、足りない点があれば一言添える。説教っぽくしない
+- question：次に聞く深掘り質問を1つ。最後の答えの具体的な言葉を拾い、なぜそうしたか・具体的な場面・数字・そこから得たもの・ほかの場面でも同じか、などを掘る。テーマが十分深まっていれば、同じテーマの別の角度に移る
+- intent：その質問で引き出したいこと（10〜20字）
+話し言葉で、やさしく、短く。会話に出ていないことを事実として扱わない。
 
 出力は次の形のJSONだけにしてください（前後に文章を付けない）：
-{"question":"質問文","intent":"面接官がこの質問で確かめたいこと（一文）","category":"why|spec|num|repro|corp|person のどれか"}`;
+{"reply":"…","question":"…","intent":"…"}`;
   const r = await caps.sample.json(prompt, { modelTier: 'quick' });
-  if (!r || typeof r.question !== 'string' || !r.question.trim()) return null;
-  return { cat: CAT[r.category] ? r.category : 'ai', q: r.question.trim(), intent: String(r.intent || ''), ai: true };
+  if (!r || typeof r.question !== 'string' || !r.question.trim()) throw { code: 'invalid_json' };
+  return { role: 'ai', reply: String(r.reply || '').trim(), q: r.question.trim(), intent: String(r.intent || '').trim() };
+}
+const INSIGHT_CATS = ['強み', '価値観', 'エピソード', '弱み', '志望軸'];
+async function aiSummarize(ctx, topicQ) {
+  const es = ctx.kind === 'es' && (ctx.q.title || '').trim();
+  const lim = es ? Number(ctx.q.limit) || 0 : 0;
+  const esSpec = !es ? '' : `,
+ "es":"ESの設問「${ctx.q.title}」への回答の改善版。${lim ? `${lim}字以内で、${Math.round(lim * 0.9)}字以上` : '元の回答と同じくらいの長さ'}。元のESの内容をもとに、会話で出てきた具体的な場面・数字・理由を加えて説得力を上げる。です・ます調の書き言葉。結論から書く"`;
+  const prompt = `あなたは、就活生の自己分析とES作りを手伝うキャリアアドバイザーです。これまでの会話をもとに、本人の答えを回答にまとめてください。
+
+${ctxText(ctx)}
+
+<conversation>
+${transcriptText(ctx.thread.chat)}
+</conversation>
+
+ルール：
+- 会話とESに出てきた事実だけを使う。誇張したり、話していないエピソードや数字を作ったりしない
+- 本人の言葉づかいや温度感はできるだけ残す
+
+出力は次の形のJSONだけにしてください（前後に文章を付けない）：
+{"answer":"面接で「${topicQ}」と聞かれたときの答え。話し言葉で、結論から。250〜300字（1分ほどで話せる長さ）"${esSpec},
+ "points":["良くなった点や、もう少し詰めると良い点（それぞれ1文、2〜3個）"],
+ "insights":[{"cat":"強み|価値観|エピソード|弱み|志望軸 のどれか","text":"自己分析として残す内容（1文）"}]}
+insights は会話から読み取れるものを2〜5個。`;
+  const r = await caps.sample.json(prompt, { modelTier: 'default' });
+  if (!r || typeof r.answer !== 'string' || !r.answer.trim()) throw { code: 'invalid_json' };
+  return {
+    role: 'sum', topic: topicQ, answer: r.answer.trim(),
+    es: es && typeof r.es === 'string' ? r.es.trim() : '', limit: lim,
+    points: (Array.isArray(r.points) ? r.points : []).filter(x => typeof x === 'string').slice(0, 4),
+    insights: (Array.isArray(r.insights) ? r.insights : []).filter(x => x && typeof x.text === 'string' && x.text.trim())
+      .map(x => ({ cat: INSIGHT_CATS.includes(x.cat) ? x.cat : 'エピソード', text: x.text.trim() })).slice(0, 6),
+    at: Date.now(),
+  };
 }
 
 /* ================= 深掘りツリー ================= */
@@ -631,10 +714,10 @@ function chainFor(q, key, nodeIndex) {
 }
 
 /* ================= 画面 ================= */
-// view: home | company | q（設問の編集） | iv（面接練習）
+// view: home | profile（自己分析ノート） | company | q（設問） | chat（深掘りの会話）
 let route = { view: 'home', id: null, qid: null };
 let filter = '';
-const nodeIndexes = new Map(); // question id -> Map(key -> node)
+const nodeIndexes = new Map();
 const STATUS_GROUPS = [
   ['インターン', ['インターンES作成中', 'インターン選考中', 'インターン参加予定', 'インターン参加済']],
   ['本選考', ['ES作成中', 'ES提出済', 'Webテスト', 'グループディスカッション', '一次面接', '二次面接', '最終面接', '内定']],
@@ -649,7 +732,6 @@ function statusClass(s) {
   if (/^インターン/.test(s || '')) return 'intern';
   return '';
 }
-const STATUS_CLASS = new Proxy({}, { get: (_, k) => statusClass(String(k)) });
 // マイページURL：http(s) のものだけリンクにする。「https://」を省いて入れても開けるように補う
 function normUrl(u) {
   u = String(u || '').trim(); if (!u) return '';
@@ -663,16 +745,16 @@ function go(r) { flushAll(); route = Object.assign({ view: 'home', id: null, qid
 function render() {
   const app = $('#app');
   if (!ready) { app.innerHTML = '<div class="empty">読み込み中…</div>'; return; }
+  if (route.view === 'profile') { app.innerHTML = profileView(); bindProfile(); return; }
+  if (route.view === 'chat') { const ctx = chatCtx(); if (ctx) { renderChat(ctx); return; } route = { view: 'home' }; }
   const c = curCompany();
-  if (route.view !== 'home' && !c) route = { view: 'home', id: null, qid: null };
+  if (['company', 'q'].includes(route.view) && !c) route = { view: 'home', id: null, qid: null };
   if (route.view === 'company') { app.innerHTML = companyView(c); bindCompany(c); return; }
   if (route.view === 'q') {
     const q = c.questions.find(x => x.id === route.qid);
     if (q) { app.innerHTML = questionView(c, q); bindQuestion(c, q); return; }
     route.view = 'company'; return render();
   }
-  if (route.view === 'iv' && iv) { renderInterview(); return; }
-  if (route.view === 'iv') { route.view = 'company'; return render(); }
   app.innerHTML = homeView(); bindHome();
 }
 function daysLeft(d) { if (!d) return null; return Math.ceil((new Date(d + 'T23:59:59') - Date.now()) / 86400000); }
@@ -681,7 +763,8 @@ function deadlinePill(c) {
   const dl = daysLeft(c.deadline);
   return `<span class="pill ${dl <= 3 ? 'seal' : 'gray'}">${dl < 0 ? '締切済' : dl === 0 ? '今日締切' : '締切まであと' + dl + '日'}</span>`;
 }
-const answeredCount = q => Object.values(q.notes || {}).filter(v => String(v).trim()).length;
+const sums = thread => (thread.chat || []).filter(m => m.role === 'sum');
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast('コピーしました'); } catch (e) { toast('コピーできませんでした'); } }
 
 /* ---- 一覧 ---- */
 function homeView() {
@@ -690,25 +773,28 @@ function homeView() {
     .filter(c => !filter || (c.name + (c.industry || '') + (c.status || '')).toLowerCase().includes(filter.toLowerCase()))
     .sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999'));
   const items = list.map(c => {
-    const n = c.questions.reduce((s, q) => s + answeredCount(q), 0);
+    const n = c.questions.reduce((s, q) => s + sums(q.thread).length, 0);
     const url = normUrl(c.url);
     return `<div class="co-row"><button class="row-btn co" type="button" data-id="${esc(c.id)}">
       <div class="grow"><div class="ttl">${esc(c.name)}</div>
         <div class="pills"><span class="pill ${statusClass(c.status)}">${esc(c.status || '')}</span>${deadlinePill(c)}</div>
-        <div class="meta">設問${c.questions.length} ・ 練習で答えた質問 ${n}</div></div>
+        <div class="meta">設問${c.questions.length}${n ? ` ・ まとめた回答 ${n}` : ''}</div></div>
       <span class="chev">›</span></button>
       ${url ? `<a class="mp" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(c.name)}のマイページを開く"><span>マイ<br>ページ</span><b aria-hidden="true">↗</b></a>` : ''}</div>`;
   }).join('');
+  const ni = (state.profile.insights || []).length;
   return `<header class="top"><h1>ES深掘りノート</h1><button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
     <div class="stack">
-      ${caps.images ? `<button class="big primary" type="button" id="btnImg">📷 ESの画像から追加<small>スクショや写真を選ぶだけで、企業・設問・回答を読み取ります</small></button>` : ''}
-      <button class="big ${caps.images ? '' : 'primary'}" type="button" id="btnAdd">＋ 企業を追加<small>${caps.images ? '手で入力する' : '企業名を入れて、ESの設問と回答を書く'}</small></button>
+      <button class="big primary" type="button" id="btnProfile">🧭 自己分析ノート<small>${ni ? `強み・価値観など ${ni}件` : '質問に答えるだけで、強みや価値観を一緒に言葉にします'}</small></button>
+      ${caps.images ? `<button class="big" type="button" id="btnImg">📷 ESの画像から追加<small>スクショや写真を選ぶだけで、企業・設問・回答を読み取ります</small></button>` : ''}
+      <button class="big" type="button" id="btnAdd">＋ 企業を追加<small>手で入力する</small></button>
     </div>
     ${state.companies.length ? `<div class="sec"><span>企業</span></div>` : ''}
     ${many ? `<input class="search" id="search" placeholder="検索" value="${esc(filter)}" aria-label="企業を検索">` : ''}
-    <div class="list">${items || (state.companies.length ? '<div class="empty">見つかりません</div>' : '<div class="empty">まだ企業がありません。<br>上のボタンから追加すると、面接で聞かれそうな質問が自動で出てきます。</div>')}</div>`;
+    <div class="list">${items || (state.companies.length ? '<div class="empty">見つかりません</div>' : '')}</div>`;
 }
 function bindHome() {
+  $('#btnProfile').onclick = () => go({ view: 'profile' });
   $('#btnAdd').onclick = () => openCompanyDialog(null);
   $('#btnSettings').onclick = openSettings;
   const bi = $('#btnImg'); if (bi) bi.onclick = () => $('#fileImg').click();
@@ -717,43 +803,132 @@ function bindHome() {
   document.querySelectorAll('.co').forEach(el => { el.onclick = () => go({ view: 'company', id: el.dataset.id }); });
 }
 
+/* ---- まとめた回答（会話の中と、設問・自己分析の画面で共通） ---- */
+function sumHtml(m, i, ctxKind) {
+  const n = countChars(m.es), over = m.limit && n > m.limit;
+  return `<div class="sum" data-i="${i}">
+    <div class="sum-h">📝 回答にまとめました</div>
+    <div class="lbl">面接での答え方 ・「${esc(clip(m.topic, 40))}」</div>
+    <div class="out">${esc(m.answer)}</div>
+    <div class="acts"><button class="btn small" type="button" data-act="copy-answer" data-i="${i}">コピー</button></div>
+    ${m.es ? `<div class="lbl">ESの改善案 <span class="${over ? 'over' : ''}">${n}${m.limit ? ' / ' + m.limit : ''}字</span></div>
+      <div class="out">${esc(m.es)}</div>
+      <div class="acts"><button class="btn small" type="button" data-act="copy-es" data-i="${i}">コピー</button>
+        ${ctxKind === 'es' ? `<button class="btn small primary" type="button" data-act="apply-es" data-i="${i}">ESに反映</button>` : ''}</div>` : ''}
+    ${m.points && m.points.length ? `<div class="lbl">ポイント</div><ul class="pts">${m.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
+    ${m.insights && m.insights.length ? `<div class="lbl">自己分析ノートに追加</div><div class="ins-chips">${m.insights.map(x => `<span class="pill gray">${esc(x.cat)}：${esc(clip(x.text, 30))}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+// data-act のボタン（コピー・ESに反映）をまとめて処理する
+function bindSumActions(root, chat, ctx) {
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const m = chat[Number(b.dataset.i)]; if (!m) return;
+    if (b.dataset.act === 'copy-answer') copyText(m.answer);
+    if (b.dataset.act === 'copy-es') copyText(m.es);
+    if (b.dataset.act === 'apply-es' && ctx.kind === 'es') {
+      if (!await askConfirm('ESの回答をこの改善案に置き換えますか？今の回答は「以前の版」に残ります。', '反映する')) return;
+      const q = ctx.q;
+      if ((q.answer || '').trim()) q.esHistory = [{ text: q.answer, at: Date.now() }, ...(q.esHistory || [])].slice(0, 10);
+      q.answer = m.es; ctx.save(); toast('ESに反映しました');
+      if (route.view === 'q') render();
+    }
+  });
+}
+
+/* ---- 自己分析ノート ---- */
+function profileView() {
+  const p = state.profile, ins = p.insights || [];
+  const groups = INSIGHT_CATS.map(cat => {
+    const xs = ins.map((x, i) => ({ ...x, i })).filter(x => x.cat === cat);
+    if (!xs.length) return '';
+    return `<div class="sec"><span>${cat}</span></div><div class="list">${xs.map(x => `
+      <div class="ins"><div class="grow"><div>${esc(x.text)}</div>${x.from ? `<div class="meta">${esc(x.from)}</div>` : ''}</div>
+        <button class="icon small-x" type="button" data-del="${x.i}" aria-label="削除">✕</button></div>`).join('')}</div>`;
+  }).join('');
+  const ss = (p.thread.chat || []).map((m, i) => m.role === 'sum' ? sumHtml(m, i, 'self') : '').filter(Boolean).reverse().join('');
+  return `<header class="top"><button class="icon" id="btnBack" aria-label="一覧に戻る">←</button><h1>自己分析ノート</h1>
+      ${ins.length ? '<button class="btn small" type="button" id="btnOut">出力</button>' : ''}</header>
+    <div class="stack">
+      <button class="big primary" type="button" id="btnTalk">🗣 深掘りしてもらう<small>質問にざっくばらんに答えるだけ。強みや価値観を一緒に言葉にします</small></button>
+    </div>
+    ${groups || `<div class="empty">会話のあとに「回答にまとめる」を押すと、<br>強み・価値観・エピソードなどがここにたまります。<br>企業ごとのESの深掘りからも追加されます。</div>`}
+    ${ss ? `<div class="sec"><span>まとめた回答</span></div><div id="sums">${ss}</div>` : ''}`;
+}
+function bindProfile() {
+  $('#btnBack').onclick = () => go({ view: 'home' });
+  $('#btnTalk').onclick = () => go({ view: 'chat', id: '_profile' });
+  const out = $('#btnOut'); if (out) out.onclick = exportProfileText;
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    state.profile.insights.splice(Number(b.dataset.del), 1); saveProfile(); render(); toast('削除しました');
+  });
+  const s = $('#sums'); if (s) bindSumActions(s, state.profile.thread.chat, { kind: 'self' });
+}
+// 自己分析ノートとESの回答を、テキストで出力する
+function profileAsText() {
+  const L = ['■ 自己分析ノート', ''];
+  INSIGHT_CATS.forEach(cat => {
+    const xs = state.profile.insights.filter(x => x.cat === cat); if (!xs.length) return;
+    L.push(`【${cat}】`); xs.forEach(x => L.push(`・${x.text}`)); L.push('');
+  });
+  const ps = sums(state.profile.thread);
+  if (ps.length) { L.push('■ 面接での答え方'); ps.forEach(m => L.push(`Q. ${m.topic}`, m.answer, '')); }
+  state.companies.forEach(c => {
+    const qs = c.questions.filter(q => (q.answer || '').trim() || sums(q.thread).length); if (!qs.length) return;
+    L.push(`■ ${c.name}（${c.status || ''}）`);
+    qs.forEach(q => {
+      L.push(`【設問】${q.title}`); if ((q.answer || '').trim()) L.push(q.answer);
+      sums(q.thread).forEach(m => L.push(`Q. ${m.topic}`, m.answer));
+      L.push('');
+    });
+  });
+  return L.join('\n');
+}
+async function exportProfileText() {
+  const text = profileAsText(), filename = `自己分析ノート-${new Date().toISOString().slice(0, 10)}.txt`;
+  if (caps.downloads) { try { await caps.downloads.save({ filename, data: text }); return; } catch (e) { if (e && e.code !== 'cancelled' && e.code !== 'declined') toast('ファイルに保存できなかったので、コピーします'); else return; } }
+  else if (!window.claude) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); return;
+  }
+  copyText(text);
+}
+
 /* ---- 企業 ---- */
 function companyView(c) {
   const rows = c.questions.map((q, i) => {
-    const n = countChars(q.answer), lim = Number(q.limit) || 0, a = answeredCount(q);
+    const n = countChars(q.answer), lim = Number(q.limit) || 0, s = sums(q.thread).length;
     const meta = n ? `${n}${lim ? '/' + lim : ''}字` : '<span style="color:var(--warn)">回答なし</span>';
     return `<button class="row-btn qrow" type="button" data-qid="${esc(q.id)}">
       <div class="grow"><div class="ttl">${esc(q.title || '（設問 ' + (i + 1) + '）')}</div>
-        <div class="meta">${meta}${a ? ` ・ 練習で${a}問答えた` : ''}</div></div><span class="chev">›</span></button>`;
+        <div class="meta">${meta}${s ? ` ・ まとめた回答 ${s}` : ''}</div></div><span class="chev">›</span></button>`;
   }).join('');
-  const ready = c.questions.some(q => (q.title || '').trim());
+  const url = normUrl(c.url);
   return `<header class="top"><button class="icon" id="btnBack" aria-label="一覧に戻る">←</button>
       <h1>${esc(c.name)}</h1><button class="icon" id="btnEditCo" aria-label="企業情報を編集">✎</button></header>
     <div class="subline"><span class="pill ${statusClass(c.status)}">${esc(c.status || '')}</span>${deadlinePill(c)}</div>
     <div class="stack">
-      ${normUrl(c.url) ? `<a class="big" href="${esc(normUrl(c.url))}" target="_blank" rel="noopener">🔗 マイページを開く<small>${esc(hostOf(normUrl(c.url)))}</small></a>`
+      ${url ? `<a class="big" href="${esc(url)}" target="_blank" rel="noopener">🔗 マイページを開く<small>${esc(hostOf(url))}</small></a>`
         : `<button class="big" type="button" id="btnSetUrl">🔗 マイページを登録<small>URLを入れておくと、ここからすぐ開けます</small></button>`}
-      <button class="big primary" type="button" id="btnStart" ${ready ? '' : 'disabled'}>🎤 面接練習をはじめる<small>質問に答えて「次へ」を押すだけ。答えに合わせて深掘りされます</small></button>
     </div>
-    <div class="sec"><span>ESの設問</span>${caps.images ? '<button class="btn small" type="button" id="btnImg">📷 画像から追加</button>' : ''}</div>
+    <div class="sec"><span>ESの設問（タップして深掘り）</span>${caps.images ? '<button class="btn small" type="button" id="btnImg">📷 画像から追加</button>' : ''}</div>
     <div class="list">${rows || '<div class="empty">設問がありません</div>'}</div>
     <button class="btn link" type="button" id="btnAddQ">＋ 設問を追加</button>`;
 }
 function bindCompany(c) {
   $('#btnBack').onclick = () => go({ view: 'home' });
   $('#btnEditCo').onclick = () => openCompanyDialog(c);
-  $('#btnStart').onclick = () => startInterview(c, null);
   const su = $('#btnSetUrl'); if (su) su.onclick = () => { openCompanyDialog(c); setTimeout(() => $('#cUrl').focus(), 50); };
   const bi = $('#btnImg'); if (bi) bi.onclick = () => $('#fileImg').click();
   $('#btnAddQ').onclick = () => {
-    const q = { id: uid(), title: '', limit: '', answer: '', notes: {}, ai: {} };
+    const q = normQ({ id: uid(), title: '', limit: '', answer: '' });
     c.questions.push(q); saveCompany(c); go({ view: 'q', id: c.id, qid: q.id });
     setTimeout(() => { const t = $('#qTitle'); if (t) t.focus(); }, 0);
   };
   document.querySelectorAll('.qrow').forEach(el => { el.onclick = () => go({ view: 'q', id: c.id, qid: el.dataset.qid }); });
 }
 
-/* ---- 設問（ESの回答を書く・これまでの答えを見る） ---- */
+/* ---- 設問 ---- */
 function countHtml(q) {
   const n = countChars(q.answer), lim = Number(q.limit) || 0;
   let cls = ''; if (lim && n > lim) cls = 'over'; else if (lim && n < lim * 0.8 && n > 0) cls = 'short';
@@ -763,8 +938,9 @@ function checkHtml(q) {
   if (!(q.answer || '').trim()) return '';
   return structureCheck(q.answer).map(x => `<span class="chk ${x.on ? 'on' : ''}">${x.on ? '✓' : '・'} ${x.label}</span>`).join('');
 }
-// 練習で答えた質問と答えを、深掘りの流れのまま表示する
-function answeredTree(c, q) {
+// 以前の版の練習記録（深掘りツリー）があれば読めるようにしておく
+function legacyTree(c, q) {
+  if (!Object.values(q.notes || {}).some(v => String(v).trim())) return '';
   const idx = new Map(); nodeIndexes.set(q.id, idx);
   const walk = nodes => nodes.map(n => {
     idx.set(n.key, n);
@@ -774,9 +950,15 @@ function answeredTree(c, q) {
   return walk(topNodes(c, q));
 }
 function questionView(c, q) {
-  const tree = answeredTree(c, q);
+  const ss = (q.thread.chat || []).map((m, i) => m.role === 'sum' ? sumHtml(m, i, 'es') : '').filter(Boolean).reverse().join('');
+  const legacy = legacyTree(c, q);
+  const hist = (q.esHistory || []).map((h, i) => `<div class="hist"><div class="meta">${new Date(h.at).toLocaleString('ja-JP')}</div><div class="a">${esc(h.text)}</div>
+    <button class="btn small" type="button" data-restore="${i}">この版に戻す</button></div>`).join('');
   return `<header class="top"><button class="icon" id="btnBack" aria-label="${esc(c.name)}に戻る">←</button>
       <h1>${esc(c.name)}</h1><button class="icon" id="btnDelQ" aria-label="この設問を削除">🗑</button></header>
+    <div class="stack">
+      <button class="big primary" type="button" id="btnTalk" ${(q.title || '').trim() ? '' : 'disabled'}>🗣 深掘りしてブラッシュアップ<small>${caps.sample ? 'ざっくばらんに答えるだけ。一緒に整理して、回答とESの改善案を出します' : '質問に答えていくだけで、深掘りが続きます'}</small></button>
+    </div>
     <label class="f" for="qTitle">設問</label>
     <input class="t" id="qTitle" value="${esc(q.title)}" placeholder="例：学生時代に力を入れたことは何ですか。" style="font-weight:700">
     <div class="row" style="align-items:flex-end">
@@ -785,34 +967,29 @@ function questionView(c, q) {
       <div class="count" id="qCount" style="flex:1;min-width:0">${countHtml(q)}</div>
     </div>
     <label class="f" for="qAnswer">ESの回答</label>
-    <textarea class="t" id="qAnswer" style="min-height:200px" placeholder="提出した（する）回答を貼り付け">${esc(q.answer)}</textarea>
+    <textarea class="t" id="qAnswer" style="min-height:180px" placeholder="提出した（する）回答を貼り付け。まだなくても、深掘りしながら作れます">${esc(q.answer)}</textarea>
     <div class="check" id="qCheck">${checkHtml(q)}</div>
-    <div class="stack" style="margin-top:18px">
-      <button class="big primary" type="button" id="btnStartQ" ${(q.title || '').trim() ? '' : 'disabled'}>🎤 この設問で面接練習<small>答えるだけで、深掘りが続きます</small></button>
-    </div>
-    <div class="sec"><span>練習で答えた内容</span>${tree ? '<button class="btn small" type="button" id="btnCopy">コピー</button>' : ''}</div>
-    ${tree || '<div class="empty">練習で答えた質問と答えが、ここにたまります。</div>'}`;
+    ${hist ? `<details class="more"><summary>ESの以前の版（${q.esHistory.length}）</summary>${hist}</details>` : ''}
+    ${ss ? `<div class="sec" style="margin-top:20px"><span>まとめた回答</span></div><div id="sums">${ss}</div>` : ''}
+    ${legacy ? `<details class="more"><summary>以前の練習の記録</summary>${legacy}</details>` : ''}`;
 }
 function bindQuestion(c, q) {
   $('#btnBack').onclick = () => go({ view: 'company', id: c.id });
-  $('#btnStartQ').onclick = () => startInterview(c, q);
+  $('#btnTalk').onclick = () => go({ view: 'chat', id: c.id, qid: q.id });
   $('#btnDelQ').onclick = async () => {
-    if (!await askConfirm('この設問と、練習で答えた内容を削除しますか？', '削除')) return;
+    if (!await askConfirm('この設問と、深掘りの会話・まとめた回答を削除しますか？', '削除')) return;
     c.questions = c.questions.filter(x => x !== q); saveCompany(c, true); go({ view: 'company', id: c.id });
   };
-  $('#qTitle').oninput = e => { q.title = e.target.value; saveCompany(c); $('#btnStartQ').disabled = !q.title.trim(); };
+  $('#qTitle').oninput = e => { q.title = e.target.value; saveCompany(c); $('#btnTalk').disabled = !q.title.trim(); };
   $('#qLimit').oninput = e => { q.limit = e.target.value; saveCompany(c); $('#qCount').innerHTML = countHtml(q); };
   $('#qAnswer').oninput = e => { q.answer = e.target.value; saveCompany(c); $('#qCount').innerHTML = countHtml(q); $('#qCheck').innerHTML = checkHtml(q); };
-  const cp = $('#btnCopy');
-  if (cp) cp.onclick = async () => {
-    const lines = [`【${c.name}】${q.title}`];
-    const walk = (nodes, ind) => nodes.forEach(n => {
-      const a = (q.notes[n.key] || '').trim(); if (!a) return;
-      lines.push(`${ind}Q. ${n.q}`, `${ind}A. ${a.replace(/\n/g, ' ')}`); walk(childNodes(c, q, n), ind + '　');
-    });
-    walk(topNodes(c, q), '');
-    try { await navigator.clipboard.writeText(lines.join('\n')); toast('コピーしました'); } catch (e) { toast('コピーできませんでした'); }
-  };
+  const s = $('#sums'); if (s) bindSumActions(s, q.thread.chat, { kind: 'es', q, save: () => saveCompany(c) });
+  document.querySelectorAll('[data-restore]').forEach(b => b.onclick = async () => {
+    if (!await askConfirm('ESの回答をこの版に戻しますか？今の回答は「以前の版」に残ります。', '戻す')) return;
+    const h = q.esHistory[Number(b.dataset.restore)];
+    q.esHistory = [{ text: q.answer, at: Date.now() }, ...q.esHistory.filter(x => x !== h)].slice(0, 10);
+    q.answer = h.text; saveCompany(c); render(); toast('戻しました');
+  });
 }
 
 /* ================= 企業ダイアログ ================= */
@@ -840,8 +1017,8 @@ $('#formCompany').addEventListener('submit', e => {
   if (c) Object.assign(c, v);
   else {
     c = { id: uid(), ...v, questions: [
-      { id: uid(), title: '志望動機を教えてください。', limit: '400', answer: '', notes: {}, ai: {} },
-      { id: uid(), title: '学生時代に最も力を入れたことは何ですか。', limit: '400', answer: '', notes: {}, ai: {} },
+      normQ({ id: uid(), title: '志望動機を教えてください。', limit: '400', answer: '' }),
+      normQ({ id: uid(), title: '学生時代に最も力を入れたことは何ですか。', limit: '400', answer: '' }),
     ] };
     state.companies.push(c); route = { view: 'company', id: c.id };
   }
@@ -890,169 +1067,149 @@ $('#fileImport').onchange = async e => {
     if (i >= 0) state.companies[i] = c; else state.companies.push(c);
     saveCompany(c, true);
   });
+  if (d.profile) {
+    const pr = normProfile(d.profile), have = new Set(state.profile.insights.map(x => x.text));
+    pr.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push(x));
+    if (!state.profile.thread.chat.length) state.profile.thread = pr.thread;
+    saveProfile(true);
+  }
   route = { view: 'home', id: null }; render(); toast('読み込みました');
 };
 
-/* ================= 面接練習：1問ずつ、答えて押すだけ ================= */
-const TOPICS_PER_Q = 5;   // 1つの設問から出す話題の数（まだ答えていないものから）
-const AUTO_DEPTH = 4;     // 1つの話題で深掘りする段数（最初の質問＋3回）
-let iv = null;
-const priority = n => n.ai ? 0 : n.intent ? 1 : 2; // AI → 回答から作った質問 → 定番の質問
-function buildTopics(c, qs) {
-  const out = [];
-  qs.forEach(q => {
-    const idx = nodeIndexes.get(q.id) || new Map(); nodeIndexes.set(q.id, idx);
-    const tops = topNodes(c, q); tops.forEach(n => idx.set(n.key, n));
-    tops.filter(n => !(q.notes[n.key] || '').trim())
-      .sort((a, b) => priority(a) - priority(b)).slice(0, TOPICS_PER_Q)
-      .forEach(n => out.push({ q, node: n }));
-  });
-  return out;
-}
-function startInterview(c, q) {
-  const qs = q ? [q] : c.questions.filter(x => (x.title || '').trim());
-  const topics = buildTopics(c, qs);
-  iv = { c, scope: q ? q.id : null, qs, topics, ti: 0, cur: topics[0] || null, count: 0, busy: false, done: !topics.length, aiOff: false };
-  route = { view: 'iv', id: c.id, qid: q ? q.id : null };
-  render(); window.scrollTo(0, 0);
-  aiRootInBackground();
-}
-// ESの回答からAIが作る質問は、練習中に裏で用意して、まだ出していない分に差し込む
-async function aiRootInBackground() {
-  const s = iv; if (!caps.sample) return;
-  for (const q of s.qs) {
-    if (s !== iv || s.aiOff) return;
-    if ((q.ai.root || []).length || !(q.answer || '').trim()) continue;
-    try { q.ai.root = await aiQuestions(s.c, q, []); saveCompany(s.c); }
-    catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { s.aiOff = true; return; } continue; }
-    if (s !== iv) return;
-    const idx = nodeIndexes.get(q.id);
-    const have = new Set(s.topics.map(t => t.node.key));
-    const fresh = q.ai.root.map(d => ({ ...d, key: 'r.' + hash(d.q), depth: 1 }))
-      .filter(n => !have.has(n.key) && !(q.notes[n.key] || '').trim()).slice(0, 3);
-    fresh.forEach(n => idx.set(n.key, n));
-    const at = s.topics.findIndex((t, i) => i > s.ti && t.q === q);
-    s.topics.splice(at >= 0 ? at : s.ti + 1, 0, ...fresh.map(n => ({ q, node: n })));
-    if (route.view === 'iv' && !s.busy) updateProgress();
+/* ================= 深掘りの会話：答える → 一緒に整理 → 回答にまとめる ================= */
+const SELF_TOPICS = [
+  ['これまでの人生で、一番夢中になったことは何ですか？', '熱量が出る対象を知る'],
+  ['周りの人から、よく頼まれることや言われることは何ですか？', '他人から見た強み'],
+  ['一番悔しかった経験を教えてください。', '価値観と原動力'],
+  ['チームの中で、自然とどんな役割になることが多いですか？', '組織での立ち位置'],
+  ['小さい頃から変わらない、自分の性格は何だと思いますか？', '一貫した特徴'],
+  ['がんばったのに、うまくいかなかった経験はありますか？', '弱みと向き合い方'],
+  ['仕事を選ぶうえで、これだけは譲れないことは何ですか？', '志望軸'],
+  ['10年後、どんな働き方をしていたいですか？', 'キャリアの方向性'],
+  ['人に感謝されて一番うれしかったのは、どんなときですか？', 'やりがいの源泉'],
+  ['逆に、どんなときにやる気がなくなりますか？', '合わない環境'],
+];
+let chatUi = { busy: '', aiOff: false, key: '' };
+function chatCtx() {
+  if (route.id === '_profile') {
+    return { kind: 'self', thread: state.profile.thread, save: saveProfile, title: '自己分析', back: () => go({ view: 'profile' }) };
   }
+  const c = curCompany(); const q = c && c.questions.find(x => x.id === route.qid);
+  if (!q) return null;
+  return { kind: 'es', company: c, q, thread: q.thread, save: () => saveCompany(c), title: c.name, back: () => go({ view: 'q', id: c.id, qid: q.id }) };
 }
-function updateProgress() {
-  const bar = $('#ivBar'), num = $('#ivNum'); if (!bar || !iv) return;
-  bar.style.width = Math.round(iv.ti / Math.max(1, iv.topics.length) * 100) + '%';
-  num.textContent = `話題 ${Math.min(iv.ti + 1, iv.topics.length)} / ${iv.topics.length}`;
+function pushMsg(ctx, m) {
+  ctx.thread.chat.push(m);
+  if (ctx.thread.chat.length > 300) ctx.thread.chat.splice(0, ctx.thread.chat.length - 300);
+  ctx.save();
 }
-function primaryLabel(note, node) {
-  if (!note.trim()) return 'スキップ';
-  return node.depth < AUTO_DEPTH ? '答えた → 深掘りへ' : '答えた → 次の話題へ';
+// 次の話題（新しい質問）を選ぶ
+function pickTopic(ctx) {
+  const asked = new Set(ctx.thread.asked || []);
+  let cands;
+  if (ctx.kind === 'self') cands = SELF_TOPICS.map(([q, intent]) => ({ q, intent }));
+  else cands = topNodes(ctx.company, ctx.q).sort((a, b) => priority(a) - priority(b));
+  const next = cands.find(x => !asked.has(x.q));
+  if (next) return next;
+  if (ctx.kind === 'self') { ctx.thread.asked = []; return cands[0]; }
+  return null;
 }
-function renderInterview() {
-  const app = $('#app'), s = iv;
-  if (s.done) {
-    app.innerHTML = `<div class="iv"><div class="iv-top"><button class="icon" id="ivClose" aria-label="練習を終わる">✕</button><div class="bar"><i style="width:100%"></i></div></div>
-      <div class="done-box"><h2>おつかれさまでした</h2>
-        <p class="muted">${s.count ? `この練習で ${s.count} 問に答えました。答えは設問ごとに保存されています。` : 'まだ答えていない質問はありませんでした。'}</p></div>
-      <div class="stack">
-        <button class="big primary" type="button" id="ivAgain">続けて練習する<small>まだ答えていない質問から出します</small></button>
-        <button class="big" type="button" id="ivBack">終わる</button>
-      </div></div>`;
-    $('#ivClose').onclick = $('#ivBack').onclick = closeInterview;
-    $('#ivAgain').onclick = () => { const q = s.scope ? s.c.questions.find(x => x.id === s.scope) : null; startInterview(s.c, q); };
-    return;
-  }
-  const { q, node } = s.cur;
-  const idx = nodeIndexes.get(q.id); idx.set(node.key, node);
-  const chain = chainFor(q, node.key, idx);
-  const prev = chain.length > 1 ? chain[chain.length - 2] : null;
-  const note = q.notes[node.key] || '';
-  app.innerHTML = `<div class="iv">
-    <div class="iv-top"><button class="icon" id="ivClose" aria-label="練習を終わる">✕</button>
-      <div class="bar"><i id="ivBar"></i></div><span class="iv-num" id="ivNum"></span></div>
-    <div class="iv-ctx">設問：${esc(q.title)}</div>
-    ${prev ? `<div class="iv-prev"><div class="q">${esc(prev.q)}</div><div class="a">${esc(prev.a)}</div></div>` : ''}
-    <span class="iv-level">${node.depth > 1 ? `深掘り ${node.depth - 1}回目` : '質問'}</span>
-    <div class="iv-q">${esc(node.q)}</div>
-    ${node.intent ? `<div class="iv-intent">ねらい：${esc(node.intent)}</div>` : '<div style="height:10px"></div>'}
-    ${s.busy ? '<div class="thinking"><span class="spin"></span>面接官が次の質問を考えています…</div>' : `
-    <textarea class="t" id="ivA" placeholder="${caps.dictation ? '話すか、入力して答える' : '答えを入力（話すように書けばOK）'}" aria-label="答え">${esc(note)}</textarea>
-    <div class="iv-partial" id="ivPartial"></div>
-    <div class="iv-actions">
-      ${caps.dictation ? `<button class="mic" type="button" id="ivMic" aria-label="話して答える">🎤</button>` : ''}
-      <button class="btn" type="button" id="ivSwitch" ${note.trim() && node.depth < AUTO_DEPTH ? '' : 'hidden'}>次の話題へ</button>
-      <button class="btn primary" type="button" id="ivNext">${primaryLabel(note, node)}</button>
-    </div>`}
-  </div>`;
-  updateProgress();
-  $('#ivClose').onclick = closeInterview;
-  if (s.busy) return;
-  const ta = $('#ivA');
-  ta.oninput = () => {
-    q.notes[node.key] = ta.value; saveCompany(s.c);
-    $('#ivNext').textContent = primaryLabel(ta.value, node);
-    $('#ivSwitch').hidden = !(ta.value.trim() && node.depth < AUTO_DEPTH);
-  };
-  if (matchMedia('(pointer:fine)').matches) ta.focus();
-  $('#ivNext').onclick = () => {
-    stopDictation();
-    const answered = !!(q.notes[node.key] || '').trim();
-    if (answered) s.count++;
-    if (answered && node.depth < AUTO_DEPTH) goDeeper(); else nextTopic();
-  };
-  $('#ivSwitch').onclick = () => { stopDictation(); s.count++; nextTopic(); };
-  const mic = $('#ivMic');
-  if (mic) mic.onclick = () => {
-    const d = caps.dictation; if (!d) return;
-    if (d.active()) { d.stop().catch(() => {}); return; }
-    d.start().catch(e => {
-      if (e && e.code === 'not_granted') { caps.dictation = null; mic.remove(); toast('マイクが使えないので、入力で答えてください'); }
-    });
-  };
+const priority = n => n.ai ? 0 : n.intent ? 1 : 2;
+function addTopic(ctx) {
+  const t = pickTopic(ctx);
+  if (!t) { pushMsg(ctx, { role: 'note', text: '用意していた質問は全部聞きました。話したいことを自由に書いてもOKです。' }); return; }
+  ctx.thread.asked = [...(ctx.thread.asked || []), t.q];
+  pushMsg(ctx, { role: 'ai', q: t.q, intent: t.intent || '', topic: true });
 }
-async function goDeeper() {
-  const s = iv, { q, node } = s.cur; const idx = nodeIndexes.get(q.id);
+function currentTopic(chat) {
+  for (let i = chat.length - 1; i >= 0; i--) if (chat[i].role === 'ai' && chat[i].topic) return i;
+  return -1;
+}
+function msgHtml(m, i, ctx) {
+  if (m.role === 'me') return `<div class="msg me">${esc(m.text)}</div>`;
+  if (m.role === 'note') return `<div class="note">${esc(m.text)}</div>`;
+  if (m.role === 'sum') return sumHtml(m, i, ctx.kind);
+  return `<div class="msg ai">${m.topic ? '<div class="tlabel">質問</div>' : ''}${m.reply ? `<p class="reply">${esc(m.reply)}</p>` : ''}
+    <p class="ask">${esc(m.q)}</p>${m.intent ? `<p class="intent">ねらい：${esc(m.intent)}</p>` : ''}</div>`;
+}
+function renderChat(ctx) {
+  const key = route.id + '/' + route.qid;
+  if (chatUi.key !== key) { chatUi = { busy: '', aiOff: false, key }; if (!ctx.thread.chat.length) addTopic(ctx); prepareAiTopics(ctx); }
+  const chat = ctx.thread.chat;
+  const t = currentTopic(chat);
+  const answered = t >= 0 && chat.slice(t + 1).some(m => m.role === 'me');
+  const busy = chatUi.busy;
+  $('#app').innerHTML = `<div class="chat">
+    <header class="top chat-top"><button class="icon" id="chBack" aria-label="戻る">←</button>
+      <h1>${esc(ctx.title)}</h1></header>
+    ${ctx.kind === 'es' ? `<div class="chat-ctx">設問：${esc(ctx.q.title)}</div>` : ''}
+    <div class="msgs" id="msgs">${chat.map((m, i) => msgHtml(m, i, ctx)).join('')}
+      ${busy ? `<div class="msg ai typing"><span class="spin"></span>${esc(busy)}</div>` : ''}</div>
+    <div class="composer">
+      <div class="chips">
+        ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${answered && !busy ? '' : 'disabled'}>📝 回答にまとめる</button>` : ''}
+        <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ 別の質問へ</button>
+      </div>
+      <div class="send-row">
+        <textarea class="t" id="chIn" rows="2" placeholder="ざっくばらんに答えてOK" aria-label="答え" ${busy ? 'disabled' : ''}>${esc(chatUi.draft || '')}</textarea>
+        <button class="btn primary" type="button" id="chSend" ${busy ? 'disabled' : ''}>送信</button>
+      </div>
+    </div></div>`;
+  window.scrollTo(0, document.body.scrollHeight);
+  $('#chBack').onclick = () => { chatUi.key = ''; ctx.back(); };
+  const inp = $('#chIn');
+  inp.oninput = () => { chatUi.draft = inp.value; };
+  inp.onkeydown = e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendAnswer(ctx); } };
+  if (!busy && matchMedia('(pointer:fine)').matches) inp.focus();
+  $('#chSend').onclick = () => sendAnswer(ctx);
+  $('#chNext').onclick = () => { addTopic(ctx); renderChat(ctx); };
+  const sb = $('#chSum'); if (sb) sb.onclick = () => summarize(ctx);
+  bindSumActions($('#msgs'), chat, ctx);
+}
+async function sendAnswer(ctx) {
+  const text = ($('#chIn').value || '').trim();
+  if (!text || chatUi.busy) return;
+  chatUi.draft = '';
+  pushMsg(ctx, { role: 'me', text });
   let next = null;
-  if (caps.sample && !s.aiOff) {
-    s.busy = true; renderInterview();
-    try {
-      const f = await aiFollowUp(s.c, q, chainFor(q, node.key, idx));
-      if (f) {
-        q.ai[node.key] = [...(q.ai[node.key] || []).filter(x => x.q !== f.q), f]; saveCompany(s.c);
-        next = { ...f, key: node.key + '.' + hash(f.q), depth: node.depth + 1 };
-      }
-    } catch (e) {
-      if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { s.aiOff = true; toast(aiErrorMessage(e)); }
-    }
-    s.busy = false;
-    if (s !== iv) return;
+  if (caps.sample && !chatUi.aiOff) {
+    chatUi.busy = '考えています…'; renderChat(ctx);
+    try { next = await aiTurn(ctx); }
+    catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { chatUi.aiOff = true; toast(aiErrorMessage(e)); } }
+    chatUi.busy = '';
   }
-  if (!next) {
-    const kids = childNodes(s.c, q, node);
-    next = kids.find(k => !(q.notes[k.key] || '').trim()) || null;
-  }
-  if (!next) return nextTopic();
-  idx.set(next.key, next);
-  s.cur = { q, node: next }; renderInterview(); window.scrollTo(0, 0);
+  if (!next) next = ruleFollowUp(ctx, text);
+  if (next) { ctx.thread.asked = [...(ctx.thread.asked || []), next.q]; pushMsg(ctx, next); }
+  else addTopic(ctx);
+  if (chatCtx() && route.view === 'chat') renderChat(ctx);
 }
-function nextTopic() {
-  const s = iv; s.ti++;
-  if (s.ti >= s.topics.length) s.done = true; else s.cur = s.topics[s.ti];
-  renderInterview(); window.scrollTo(0, 0);
+// AIが使えないときは、アプリ内の深掘りで続ける
+function ruleFollowUp(ctx, text) {
+  const asked = new Set(ctx.thread.asked || []);
+  const last = [...ctx.thread.chat].reverse().find(m => m.role === 'ai') || { q: '' };
+  const co = ctx.kind === 'es' ? ctx.company : { name: '' };
+  const f = generateFollowUps({ cat: 'ai', q: last.q }, text, co).find(x => !asked.has(x.q));
+  return f ? { role: 'ai', reply: '', q: f.q, intent: f.intent || '' } : null;
 }
-function closeInterview() {
-  stopDictation(); const s = iv; iv = null;
-  go(s && s.scope ? { view: 'q', id: s.c.id, qid: s.scope } : { view: 'company', id: s ? s.c.id : null });
+async function summarize(ctx) {
+  const chat = ctx.thread.chat, t = currentTopic(chat);
+  if (t < 0 || chatUi.busy) return;
+  chatUi.busy = '回答にまとめています…（30秒ほどかかることがあります）'; renderChat(ctx);
+  try {
+    const s = await aiSummarize(ctx, chat[t].q);
+    pushMsg(ctx, s);
+    const from = ctx.kind === 'es' ? `${ctx.company.name}・${clip(ctx.q.title, 20)}` : '自己分析';
+    const have = new Set(state.profile.insights.map(x => x.text));
+    s.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push({ ...x, from, at: Date.now() }));
+    saveProfile();
+  } catch (e) { toast(aiErrorMessage(e).replace('AIの深掘り', 'まとめ')); }
+  chatUi.busy = '';
+  if (route.view === 'chat') renderChat(ctx);
 }
-// 音声入力（claude.ai で使える場合）
-function stopDictation() { const d = caps.dictation; if (d && d.active()) d.stop().catch(() => {}); }
-function initDictation(d) {
-  caps.dictation = d; if (!d) return;
-  d.onPartial(({ text }) => { const p = $('#ivPartial'); if (p) p.textContent = text; });
-  d.onFinal(({ text }) => {
-    const ta = $('#ivA'); const p = $('#ivPartial'); if (p) p.textContent = '';
-    if (!ta || !text) return;
-    ta.value = (ta.value ? ta.value.replace(/\s*$/, '') + (/[。！？]$/.test(ta.value.trim()) ? '' : '。') : '') + text;
-    ta.dispatchEvent(new Event('input'));
-  });
-  d.onState(({ state }) => { const m = $('#ivMic'); if (m) m.classList.toggle('on', state === 'listening' || state === 'starting'); });
+// ESの回答があれば、AIの質問を裏で用意しておく（次の話題で使う）
+async function prepareAiTopics(ctx) {
+  if (ctx.kind !== 'es' || !caps.sample || (ctx.q.ai.root || []).length || !(ctx.q.answer || '').trim()) return;
+  try { ctx.q.ai.root = await aiQuestions(ctx.company, ctx.q, []); ctx.save(); } catch (e) {}
 }
 
 /* ================= 画像から読み取り ================= */
@@ -1219,7 +1376,7 @@ $('#formImport').addEventListener('submit', e => {
       if (!same.limit && p.limit) same.limit = p.limit;
       return;
     }
-    c.questions.push({ id: uid(), title: p.title, limit: p.limit, answer: p.answer, notes: {}, ai: {} }); added++;
+    c.questions.push(normQ({ id: uid(), title: p.title, limit: p.limit, answer: p.answer })); added++;
   });
   saveCompany(c, true); $('#dlgImport').close();
   route = { view: 'company', id: c.id }; render(); window.scrollTo(0, 0);
