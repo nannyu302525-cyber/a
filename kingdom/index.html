@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181a">
+</head>
+<body>
+<!--ARTIFACT-START-->
+<title>辺境開拓記</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: the map fills the screen; a ledger of stores runs across the top, the builder's tray along the bottom */
+:root{
+  --ink:#121618;
+  --panel:#1b2225;
+  --panel-2:#242d31;
+  --line:#37444a;
+  --text:#ece6d6;
+  --muted:#9ea69d;
+  --brass:#d4a84b;
+  --good:#8cc66f;
+  --bad:#e57a62;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--f-body);font-size:14px;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+#app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr)}
+
+/* top ledger */
+#top{background:var(--panel);border-bottom:1px solid var(--line);padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+#res{display:flex;flex-wrap:wrap;gap:4px 14px;flex:1 1 auto;min-width:0}
+.chip{display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip i{display:inline-block;width:9px;height:9px;border-radius:2px;transform:translateY(-1px)}
+.chip .k{color:var(--muted);font-size:12px}
+.chip b{font-weight:700;font-size:15px}
+.chip small{font-size:11px;color:var(--muted)}
+.chip small.up{color:var(--good)}
+.chip small.down{color:var(--bad)}
+.clock{display:flex;align-items:center;gap:10px;margin-left:auto}
+#date{font-family:var(--f-display);font-size:15px;letter-spacing:.04em;white-space:nowrap}
+.speed{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.speed button{background:transparent;border:0;padding:4px 9px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.speed button+button{border-left:1px solid var(--line)}
+.speed button[aria-pressed="true"]{background:var(--brass);color:#1b1608;font-weight:700}
+
+/* stage */
+#stage{position:relative;overflow:hidden;min-height:0}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+#hud{position:absolute;top:10px;left:max(12px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:8px;width:min(320px,calc(100% - 24px));pointer-events:none}
+#goal{pointer-events:auto;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px}
+#goal .rank{display:flex;align-items:baseline;gap:8px}
+#goal .rank strong{font-family:var(--f-display);font-size:20px;font-weight:800;letter-spacing:.06em;color:var(--brass)}
+#goal .rank span{color:var(--muted);font-size:12px}
+#goal .task{font-size:13px;line-height:1.5}
+#goal .task em{font-style:normal;color:var(--muted);font-size:12px}
+#goal .hint{font-size:12px;color:var(--muted);line-height:1.5}
+#goal .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+#goal .bar div{height:100%;background:var(--brass);transition:width .4s}
+#toasts{display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--panel-2);border-left:3px solid var(--brass);border-radius:6px;padding:7px 10px;font-size:12.5px;line-height:1.45;animation:tin .25s ease-out;transition:opacity .5s}
+.toast.good{border-left-color:var(--good)}
+.toast.bad{border-left-color:var(--bad)}
+.toast.out{opacity:0}
+@keyframes tin{from{transform:translateX(-8px);opacity:0}}
+
+/* info panel */
+#info{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:12px;width:min(300px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#info h2{margin:0;font-family:var(--f-display);font-size:18px;letter-spacing:.05em;display:flex;align-items:baseline;gap:8px;padding-right:28px}
+#info h2 small{font-family:var(--f-body);font-size:12px;color:var(--brass);font-weight:700}
+#info p{margin:0;font-size:12.5px;line-height:1.6;color:var(--muted)}
+#info ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:12.5px}
+#info li{display:flex;gap:6px}
+#info li .m{width:1em;text-align:center;font-weight:700}
+#info li.ok .m{color:var(--good)}
+#info li.no .m{color:var(--bad)}
+#info .stat{font-size:13px;font-variant-numeric:tabular-nums}
+#info .close{position:absolute;top:8px;right:8px;width:28px;height:28px;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;border-radius:6px}
+#info .act{justify-self:start;background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--bad)}
+
+/* tray */
+#tray{background:var(--panel);border-top:1px solid var(--line);padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#tools{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.tool{flex:0 0 auto;width:74px;display:grid;justify-items:center;gap:2px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 4px 5px;position:relative}
+.tool canvas{width:38px;height:38px}
+.tool .n{font-size:11.5px;font-weight:700;white-space:nowrap}
+.tool .c{font-size:10.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tool .c.short{color:var(--bad)}
+.tool[aria-pressed="true"]{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 16%,var(--panel-2))}
+.tool.locked{opacity:.45}
+.tool.sep{margin-right:8px}
+.tool.sep::after{content:"";position:absolute;right:-8px;top:10px;bottom:10px;width:1px;background:var(--line)}
+#menuBtn{background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:12px;color:var(--muted)}
+#menuBtn.armed{border-color:var(--bad);color:var(--bad)}
+@media (max-width:520px){
+  .chip .k{display:none}
+  #res{gap:2px 11px}
+  .clock{margin-left:0;width:100%;justify-content:space-between}
+}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}#goal .bar div{transition:none}}
+</style>
+
+<div id="app">
+  <header id="top">
+    <div id="res" aria-live="polite"></div>
+    <div class="clock">
+      <span id="date"></span>
+      <div class="speed" role="group" aria-label="時間の速さ">
+        <button data-speed="0" aria-label="一時停止">停止</button>
+        <button data-speed="1">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+      </div>
+      <button id="menuBtn">新しい土地</button>
+    </div>
+  </header>
+  <main id="stage">
+    <canvas id="map" aria-label="領地の地図"></canvas>
+    <div id="hud">
+      <section id="goal" aria-label="目標"></section>
+      <div id="toasts"></div>
+    </div>
+    <section id="info" hidden></section>
+  </main>
+  <nav id="tray" aria-label="建てるもの"><div id="tools"></div></nav>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const T=32, W=48, H=48, DAY_MS=1200, SEASON_DAYS=15, YEAR0=1180;
+const KEY='henkyo-kaitakuki-v1';
+const SEASONS=['春','夏','秋','冬'];
+const RANKS=[{pop:0,name:'開拓地'},{pop:20,name:'村'},{pop:50,name:'町'},{pop:100,name:'城下町'},{pop:180,name:'都市'},{pop:300,name:'王都'}];
+const RES=[['food','食料','#dc9b4f'],['wood','木材','#a8743f'],['stone','石材','#9fa6ab'],['gold','金貨','#f0cf55']];
+const RES_SHORT={food:'食',wood:'木',stone:'石',gold:'金'};
+const HOUSE_CAP=[0,4,8,12];
+const FARM_SEASON=[1.0,1.3,1.6,0.15];
+const DEF={
+  house:{name:'家',cost:{wood:8},rank:0,desc:'住民が住む。道・井戸・市場・礼拝堂がそろうと大きく育つ。'},
+  road:{name:'道',cost:{wood:1},rank:0,desc:'家の前に敷くと家が育つ。押したままなぞると続けて敷ける。'},
+  farm:{name:'畑',cost:{wood:10},workers:2,rank:0,desc:'季節で収穫が変わる。秋が一番多く、冬はほとんど育たない。'},
+  lumber:{name:'木こり小屋',cost:{wood:6},workers:2,rank:0,desc:'森のとなりに建てる。まわりの森が多いほど木材がとれる。'},
+  fisher:{name:'漁師小屋',cost:{wood:10},workers:2,rank:0,desc:'水辺に建てる。冬でも食料がとれる。'},
+  quarry:{name:'石切場',cost:{wood:15},workers:3,rank:0,desc:'岩山のとなりに建てる。石材がとれる。'},
+  well:{name:'井戸',cost:{stone:6},rank:0,desc:'4マス以内の家が育つための条件になる。'},
+  tower:{name:'見張り塔',cost:{wood:15,stone:25},rank:1,desc:'まわり5マスを領土にして霧を晴らす。領土の端に建てよう。'},
+  market:{name:'市場',cost:{wood:25,stone:15},workers:3,rank:1,desc:'金貨を生む。6マス以内の家が3段目に育つ条件。'},
+  chapel:{name:'礼拝堂',cost:{stone:40,gold:30},workers:2,rank:2,desc:'6マス以内の家が3段目に育つ条件。'},
+  castle:{name:'城',cost:{},rank:0,size:2}
+};
+const BUILD_ORDER=['house','road','farm','lumber','fisher','quarry','well','tower','market','chapel'];
+const TOOLS=[{id:'inspect',name:'調べる',hint:'建物を調べる'},{id:'clear',name:'伐採',hint:'森 → 木材+4'},{id:'demolish',name:'取り壊し',hint:'半額もどる'}];
+const TERRAIN_NAME=['水辺','草地','森','岩山','山'];
+const TERRAIN_DESC=['となりに漁師小屋を建てられる。','建物を建てられる。','「伐採」で切り開くと木材+4。となりに木こり小屋を建てられる。','となりに石切場を建てられる。','険しくて何も建てられない。'];
+
+const GOALS=[
+  {t:'家を3軒建てる',c:()=>cnt('house')>=3,p:()=>Math.min(3,cnt('house'))/3,r:{wood:10}},
+  {t:'畑を2つ作る',c:()=>cnt('farm')>=2,p:()=>Math.min(2,cnt('farm'))/2,r:{food:20}},
+  {t:'森のとなりに木こり小屋を建てる',c:()=>cnt('lumber')>=1,r:{wood:15}},
+  {t:'岩山のとなりに石切場を建てる',c:()=>cnt('quarry')>=1,r:{stone:10}},
+  {t:'家の前に道を5マス敷く',c:()=>cnt('road')>=5,p:()=>Math.min(5,cnt('road'))/5,r:{wood:10}},
+  {t:'家の近くに井戸を掘る',c:()=>cnt('well')>=1,r:{food:15}},
+  {t:'家を2段目に育てる(道と井戸が必要)',c:()=>maxHouse()>=2,r:{gold:20}},
+  {t:'人口20人で「村」になる',c:()=>S.pop>=20,p:()=>Math.min(1,S.pop/20),r:{stone:20}},
+  {t:'見張り塔で領土を広げる',c:()=>cnt('tower')>=1,r:{wood:20,stone:10}},
+  {t:'市場を開く',c:()=>cnt('market')>=1,r:{gold:30}},
+  {t:'人口50人で「町」になる',c:()=>S.pop>=50,p:()=>Math.min(1,S.pop/50),r:{stone:30}},
+  {t:'礼拝堂を建てる',c:()=>cnt('chapel')>=1,r:{gold:40}},
+  {t:'家を3段目に育てる(市場と礼拝堂が必要)',c:()=>maxHouse()>=3,r:{gold:50}},
+  {t:'人口100人で「城下町」になる',c:()=>S.pop>=100,p:()=>Math.min(1,S.pop/100),r:{gold:80}},
+  {t:'人口180人で「都市」になる',c:()=>S.pop>=180,p:()=>Math.min(1,S.pop/180),r:{gold:120}},
+  {t:'人口300人で「王都」になる',c:()=>S.pop>=300,p:()=>Math.min(1,S.pop/300),r:{gold:200}}
+];
+
+const $=s=>document.querySelector(s);
+const cv=$('#map'), ctx=cv.getContext('2d');
+let S=null, terr=new Uint8Array(W*H), bmap=new Map();
+let tool='inspect', hover=null, infoTarget=null, cam={x:24*T,y:24*T,z:1};
+let VW=0,VH=0,dpr=1, acc=0, lastT=0, walkers=[], floaters=[], WINTER=false, SEASON=0, NOW=0;
+
+/* ---------- utilities ---------- */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(x,y,k=0){let h=(x*374761393+y*668265263+k*2147483647)|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function cnt(t){let n=0;for(const b of S.buildings)if(b.type===t)n++;return n}
+function maxHouse(){let m=0;for(const b of S.buildings)if(b.type==='house'&&b.lv>m)m=b.lv;return m}
+function ter(x,y){return (x<0||y<0||x>=W||y>=H)?-1:S.terrain[x+y*W]}
+function count8(x,y,t){let n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;if(ter(x+dx,y+dy)===t)n++}return n}
+function count4(x,y,t){return (ter(x+1,y)===t)+(ter(x-1,y)===t)+(ter(x,y+1)===t)+(ter(x,y-1)===t)}
+function bAt(x,y){if(x<0||y<0||x>=W||y>=H)return null;const id=S.occ[x+y*W];return id>=0?bmap.get(id):null}
+function center(b){const s=DEF[b.type].size||1;return [b.x+s/2,b.y+s/2]}
+function near(b,type,r){const [cx,cy]=center(b);for(const o of S.buildings){if(o.type!==type)continue;const [ox,oy]=center(o);if(Math.hypot(ox-cx,oy-cy)<=r)return true}return false}
+function roadAdj(b){for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const o=bAt(b.x+dx,b.y+dy);if(o&&(o.type==='road'||o.type==='castle'))return true}return false}
+function cap(){let c=6;for(const b of S.buildings)if(b.type==='house')c+=HOUSE_CAP[b.lv];return c}
+function jobs(){let j=0;for(const b of S.buildings)j+=DEF[b.type].workers||0;return j}
+function seasonIdx(d=S.day){return Math.floor(d/SEASON_DAYS)%4}
+function rankFor(p){let r=0;RANKS.forEach((k,i)=>{if(p>=k.pop)r=i});return r}
+function costText(c){return Object.entries(c).map(([k,v])=>RES_SHORT[k]+v).join(' ')}
+function afford(c){for(const k in c)if(S.res[k]<c[k])return false;return true}
+
+/* ---------- world generation ---------- */
+function noiseField(r,cell){const gw=Math.ceil(W/cell)+2,gh=Math.ceil(H/cell)+2,g=[];for(let i=0;i<gw*gh;i++)g.push(r());
+  return (x,y)=>{const fx=x/cell,fy=y/cell,ix=Math.floor(fx),iy=Math.floor(fy),tx=fx-ix,ty=fy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty);
+    const a=g[ix+iy*gw],b=g[ix+1+iy*gw],c=g[ix+(iy+1)*gw],d=g[ix+1+(iy+1)*gw];return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy}}
+function genTerrain(seed){
+  const r=mulberry(seed), n1=noiseField(r,11),n2=noiseField(r,5),n3=noiseField(r,2.5),m1=noiseField(r,8),m2=noiseField(r,3.5);
+  const t=new Uint8Array(W*H), cx=24, cy=24;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    let e=n1(x,y)*.6+n2(x,y)*.3+n3(x,y)*.1; const m=m1(x,y)*.65+m2(x,y)*.35;
+    const dc=Math.hypot(x+.5-cx,y+.5-cy); if(dc<5){const k=dc/5;e=e*k+.5*(1-k)}
+    let v=1; if(e<.34)v=0; else if(e>.7)v=4; else if(e>.62)v=3; else if(m>.55)v=2;
+    t[x+y*W]=v;
+  }
+  for(let y=21;y<27;y++)for(let x=21;x<27;x++)t[x+y*W]=1;
+  const blob=(type,minD,maxD)=>{
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const d=Math.hypot(x+.5-cx,y+.5-cy);if(d>=minD&&d<=maxD&&t[x+y*W]===type)return}
+    const a=r()*Math.PI*2,d=(minD+maxD)/2,bx=cx+Math.cos(a)*d,by=cy+Math.sin(a)*d;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const dd=Math.hypot(x+.5-bx,y+.5-by);const dc=Math.hypot(x+.5-cx,y+.5-cy);if(dd<1.7+r()*.6&&dc>3.2)t[x+y*W]=type}
+  };
+  blob(2,3.5,5.5); blob(3,4,5.8); blob(0,4.5,6.5);
+  return t;
+}
+
+/* ---------- state ---------- */
+function rebuildIndex(){S.occ=new Int32Array(W*H).fill(-1);bmap.clear();for(const b of S.buildings){bmap.set(b.id,b);const s=DEF[b.type].size||1;for(let dy=0;dy<s;dy++)for(let dx=0;dx<s;dx++)S.occ[b.x+dx+(b.y+dy)*W]=b.id}}
+function recomputeTerritory(){
+  terr.fill(0);
+  const src=[];
+  for(const b of S.buildings){if(b.type==='castle'){const [cx,cy]=center(b);src.push([cx,cy,5.6+S.rank])}else if(b.type==='tower'){const [cx,cy]=center(b);src.push([cx,cy,5.2])}}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){for(const [cx,cy,r] of src){const d=Math.hypot(x+.5-cx,y+.5-cy);if(d<=r)terr[x+y*W]=1;if(d<=r+3)S.revealed[x+y*W]=1}}
+}
+function newGame(){
+  const seed=(Math.random()*1e9)|0;
+  S={seed,terrain:genTerrain(seed),revealed:new Uint8Array(W*H),buildings:[],res:{food:60,wood:50,stone:12,gold:20},pop:6,day:0,rank:0,goal:0,growAcc:0,starveAcc:0,nextId:1,rates:{food:0,wood:0,stone:0,gold:0},emp:1,speed:1};
+  S.buildings.push({id:S.nextId++,type:'castle',x:23,y:23,lv:1,age:0});
+  rebuildIndex();recomputeTerritory();
+  acc=0;walkers=[];floaters=[];infoTarget=null;$('#info').hidden=true;
+  cam={x:24*T,y:24*T,z:fitZoom()};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({...S,occ:undefined,terrain:Array.from(S.terrain).join(''),revealed:Array.from(S.revealed).join('')}))}catch(e){}}
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(!raw)return false;const d=JSON.parse(raw);
+    if(!d||!d.terrain||d.terrain.length!==W*H)return false;
+    d.terrain=Uint8Array.from(d.terrain,c=>+c);d.revealed=Uint8Array.from(d.revealed,c=>+c);
+    S=d;rebuildIndex();recomputeTerritory();cam={x:24*T,y:24*T,z:fitZoom()};return true}catch(e){return false}
+}
+
+/* ---------- simulation ---------- */
+function simDay(){
+  S.day++;
+  const se=seasonIdx(), j=jobs(), r=j?Math.min(1,S.pop/j):1; S.emp=r;
+  const d={food:0,wood:0,stone:0,gold:0};
+  for(const b of S.buildings){
+    switch(b.type){
+      case 'farm':d.food+=2.4*FARM_SEASON[se]*r;break;
+      case 'fisher':d.food+=(se===3?1.3:2.0)*r;break;
+      case 'lumber':d.wood+=Math.min(3.5,.4+.6*count8(b.x,b.y,2))*r;break;
+      case 'quarry':d.stone+=1.6*r;break;
+      case 'market':d.gold+=2.2*r;break;
+    }
+  }
+  d.food-=.2*S.pop; d.gold+=.05*S.pop;
+  for(const k in d)S.res[k]=Math.max(0,S.res[k]+d[k]);
+  S.rates=d;
+  const c=cap();
+  if(S.res.food<=0&&d.food<0){S.starveAcc+=.5;if(S.starveAcc>=1&&S.pop>1){S.starveAcc=0;S.pop--;if(S.day%3===0)toast('食料が尽きて住民が領地を去っている。畑か漁師小屋を増やそう','bad')}}
+  else if(S.pop<c){S.growAcc+=Math.min(1.5,.25+.03*(c-S.pop));while(S.growAcc>=1&&S.pop<c){S.pop++;S.growAcc--}}
+  else if(S.pop>c){S.pop=c}
+  for(const b of S.buildings){
+    if(b.type!=='house')continue; b.age++;
+    if(b.age<6)continue;
+    if(b.lv===1&&roadAdj(b)&&near(b,'well',4)&&S.res.food>2){b.lv=2;b.age=0;onHouseUp(b)}
+    else if(b.lv===2&&roadAdj(b)&&near(b,'market',6)&&near(b,'chapel',6)&&S.res.food>2){b.lv=3;b.age=0;onHouseUp(b)}
+  }
+  const nr=Math.max(S.rank,rankFor(S.pop));
+  if(nr>S.rank){S.rank=nr;recomputeTerritory();
+    const un=BUILD_ORDER.filter(k=>DEF[k].rank===nr).map(k=>DEF[k].name);
+    toast(`「${RANKS[nr].name}」に発展した! 城が大きくなり領土が広がった`+(un.length?`。${un.join('・')}が建てられるようになった`:''),'good');renderTools()}
+  if(S.day%SEASON_DAYS===0){const n=seasonIdx();toast(n===3?'冬が来た。畑はほとんど育たない':n===2?'秋になった。畑の実りが一番多い季節':n===0?`${YEAR0+Math.floor(S.day/60)}年の春が来た`:'夏になった')}
+  maybeEvent(); checkGoals();
+  if(S.day%5===0)save();
+  renderHUD(); if(infoTarget)renderInfo();
+}
+let upToastDay=-99;
+function onHouseUp(b){const [cx,cy]=center(b);floater(cx,cy,b.lv===2?'家が育った':'立派な屋敷に','#f2d27a');if(S.day-upToastDay>8){upToastDay=S.day;toast(b.lv===2?'家が2段目に育った。住める人数が増える':'家が3段目の屋敷に育った!','good')}}
+function maybeEvent(){
+  if(S.day<12||Math.random()>.05)return;
+  const se=seasonIdx(), evs=[
+    ()=>{const n=Math.min(4,cap()-S.pop);if(n<=0)return false;S.pop+=n;toast(`旅の一家が${n}人、移り住んできた`,'good')},
+    ()=>{const g=10+Math.floor(Math.random()*15);S.res.gold+=g;toast(`行商人が立ち寄り、金貨${g}枚を落としていった`,'good')},
+    ()=>{if(se!==2||!cnt('farm'))return false;const f=10*cnt('farm');S.res.food+=f;toast(`豊作の秋! 食料+${f}`,'good')},
+    ()=>{if(S.res.food<30)return false;const f=Math.floor(S.res.food*.15);S.res.food-=f;toast(`狼の群れが倉を荒らした。食料-${f}`,'bad')},
+    ()=>{const w=8+Math.floor(Math.random()*10);S.res.wood+=w;toast(`嵐で倒れた木を集めた。木材+${w}`)},
+    ()=>{if(se!==3)return false;const f=Math.floor(S.res.food*.1);if(f<3)return false;S.res.food-=f;toast(`厳しい寒波。食料-${f}`,'bad')}
+  ];
+  evs[Math.floor(Math.random()*evs.length)]();
+}
+function checkGoals(){
+  while(S.goal<GOALS.length&&GOALS[S.goal].c()){
+    const g=GOALS[S.goal];for(const k in g.r)S.res[k]+=g.r[k];
+    toast(`目標達成「${g.t}」 ほうび: ${Object.entries(g.r).map(([k,v])=>RES.find(r=>r[0]===k)[1]+'+'+v).join('、')}`,'good');
+    S.goal++;
+  }
+}
+
+/* ---------- actions ---------- */
+let lastWarn=0;
+function warn(msg){const n=performance.now();if(n-lastWarn<700)return;lastWarn=n;toast(msg,'bad')}
+function canPlace(type,x,y){
+  if(x<0||y<0||x>=W||y>=H)return 'ここは地図の外';
+  const i=x+y*W;
+  if(!S.revealed[i])return 'まだ霧に包まれた土地。見張り塔で切り開こう';
+  if(!terr[i])return '領土の外。'+(S.rank>=1?'見張り塔で領土を広げよう':'「村」になると見張り塔で広げられる');
+  if(S.occ[i]>=0)return 'すでに建物がある';
+  const t=S.terrain[i];
+  if(t===2)return '森には建てられない。「伐採」で切り開こう';
+  if(t!==1)return '草地にしか建てられない';
+  if(type==='lumber'&&!count8(x,y,2))return '木こり小屋は森のとなりに建てよう';
+  if(type==='quarry'&&!count8(x,y,3)&&!count8(x,y,4))return '石切場は岩山のとなりに建てよう';
+  if(type==='fisher'&&!count4(x,y,0))return '漁師小屋は水辺(上下左右)に建てよう';
+  return null;
+}
+function build(type,x,y,quiet){
+  const d=DEF[type];
+  if(S.rank<d.rank){warn(`${d.name}は「${RANKS[d.rank].name}」になると建てられる`);return false}
+  const e=canPlace(type,x,y); if(e){if(!quiet)warn(e);return false}
+  for(const k in d.cost)if(S.res[k]<d.cost[k]){warn(`${RES.find(r=>r[0]===k)[1]}が足りない(あと${Math.ceil(d.cost[k]-S.res[k])})`);return false}
+  for(const k in d.cost)S.res[k]-=d.cost[k];
+  const b={id:S.nextId++,type,x,y,lv:1,age:0};S.buildings.push(b);bmap.set(b.id,b);S.occ[x+y*W]=b.id;
+  if(type==='tower'){recomputeTerritory();toast('見張り塔が建った。領土が広がり、霧が晴れた','good')}
+  checkGoals();renderHUD();return true;
+}
+function demolish(b){
+  if(b.type==='castle'){warn('城は取り壊せない');return}
+  S.buildings=S.buildings.filter(o=>o!==b);rebuildIndex();
+  const c=DEF[b.type].cost,back=[];for(const k in c){const v=Math.floor(c[k]/2);if(v){S.res[k]+=v;back.push(RES_SHORT[k]+'+'+v)}}
+  if(back.length)floater(b.x+.5,b.y+.5,back.join(' '),'#e8dcc0');
+  if(b.type==='tower')recomputeTerritory();
+  if(infoTarget&&infoTarget.b===b)closeInfo();
+  renderHUD();
+}
+function tap(x,y){
+  if(x<0||y<0||x>=W||y>=H)return;
+  const b=bAt(x,y), i=x+y*W;
+  if(tool==='inspect'){if(b)openInfo({b});else if(S.revealed[i])openInfo({tile:[x,y]});else closeInfo();return}
+  if(tool==='clear'){
+    if(!S.revealed[i]||!terr[i])return warn('領土の中の森だけ切り開ける');
+    if(S.terrain[i]!==2)return warn('伐採できるのは森だけ');
+    S.terrain[i]=1;S.res.wood+=4;floater(x+.5,y+.5,'木材+4','#e2b36f');renderHUD();return}
+  if(tool==='demolish'){if(b)demolish(b);return}
+  build(tool,x,y);
+}
+
+/* ---------- drawing: terrain ---------- */
+const GRASS=[['#7fae52','#7aa94e'],['#6d9c41','#699840'],['#a89c4c','#a29648'],['#dfe5e6','#dae0e2']];
+const TUFT=['#679440','#58873a','#8a7f3b','#c3ccce'];
+function drawTerrain(c,x,y,px,py,s){
+  const t=S.terrain[x+y*W], h=hash(x,y), se=SEASON;
+  const g=GRASS[se][h<.5?0:1];
+  if(t===0){
+    c.fillStyle=WINTER?'#9dbccb':'#3f7392';c.fillRect(px,py,s,s);
+    if(s>10){const ph=(NOW/2400+h)%1;c.fillStyle=WINTER?'rgba(255,255,255,.35)':`rgba(190,225,240,${.18+.15*Math.sin(ph*6.28)})`;c.fillRect(px+s*(.15+h*.4),py+s*(.3+hash(x,y,3)*.4),s*.3,Math.max(1,s*.05))}
+    let edge=false;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=ter(x+dx,y+dy);if(n>0){edge=true;c.fillStyle=WINTER?'#c9d8de':'#5f8c9e';if(dx===1)c.fillRect(px+s*.9,py,s*.1,s);if(dx===-1)c.fillRect(px,py,s*.1,s);if(dy===1)c.fillRect(px,py+s*.9,s,s*.1);if(dy===-1)c.fillRect(px,py,s,s*.1)}}
+    return;
+  }
+  c.fillStyle=g;c.fillRect(px,py,s,s);
+  if(t===1){if(s>14&&h>.55){c.fillStyle=TUFT[se];c.fillRect(px+s*hash(x,y,1)*.8,py+s*hash(x,y,2)*.8,s*.08,s*.08);c.fillRect(px+s*hash(x,y,4)*.8,py+s*hash(x,y,5)*.8,s*.06,s*.06)}return}
+  if(t===2){
+    if(s<12){c.fillStyle=WINTER?'#36564a':'#3b6e37';c.fillRect(px+1,py+1,s-2,s-2);return}
+    for(let k=0;k<3;k++){
+      const tx=px+s*(.22+hash(x,y,k*3+1)*.56), ty=py+s*(.22+hash(x,y,k*3+2)*.56), r=s*(.19+hash(x,y,k*3+3)*.08);
+      c.fillStyle='rgba(20,40,20,.3)';c.beginPath();c.arc(tx+r*.25,ty+r*.3,r,0,7);c.fill();
+      let col; if(se===2){const q=hash(x,y,k+9);col=q<.33?'#b8642c':q<.6?'#c99a30':'#3f6b34'} else col=se===0?'#3f7d3a':se===1?'#2f6b33':'#2f4d40';
+      c.fillStyle=col;c.beginPath();c.arc(tx,ty,r,0,7);c.fill();
+      c.fillStyle=WINTER?'rgba(245,248,250,.85)':'rgba(255,255,255,.12)';c.beginPath();c.arc(tx-r*.3,ty-r*.3,r*.45,0,7);c.fill();
+    }
+    return;
+  }
+  if(t===3){
+    c.fillStyle=WINTER?'#c4c0b8':'#9a9083';c.fillRect(px,py,s,s);
+    if(s<10)return;
+    for(let k=0;k<2;k++){const rx=px+s*(.18+hash(x,y,k+20)*.5),ry=py+s*(.2+hash(x,y,k+22)*.5),rw=s*(.3+hash(x,y,k+24)*.15);
+      c.fillStyle='#7c7366';c.beginPath();c.moveTo(rx,ry+rw*.8);c.lineTo(rx+rw*.45,ry);c.lineTo(rx+rw,ry+rw*.8);c.fill();
+      c.fillStyle=WINTER?'#f2f4f5':'#b5ab9b';c.beginPath();c.moveTo(rx,ry+rw*.8);c.lineTo(rx+rw*.45,ry);c.lineTo(rx+rw*.45,ry+rw*.8);c.fill()}
+    return;
+  }
+  if(t===4){
+    c.fillStyle='#6b6661';c.fillRect(px,py,s,s);
+    c.fillStyle='#57524d';c.beginPath();c.moveTo(px,py+s);c.lineTo(px+s*.5,py+s*.08);c.lineTo(px+s,py+s);c.fill();
+    c.fillStyle='#837d76';c.beginPath();c.moveTo(px,py+s);c.lineTo(px+s*.5,py+s*.08);c.lineTo(px+s*.5,py+s);c.fill();
+    c.fillStyle='#f1f3f4';c.beginPath();c.moveTo(px+s*.32,py+s*.38);c.lineTo(px+s*.5,py+s*.08);c.lineTo(px+s*.68,py+s*.38);c.fill();
+  }
+}
+
+/* ---------- drawing: buildings ---------- */
+function rr(c,x,y,w,h,col){c.fillStyle=col;c.fillRect(x,y,w,h)}
+function circ(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill()}
+function shade(c,x,y,w,h,s){c.fillStyle='rgba(15,22,15,.28)';c.fillRect(x+s*.06,y+s*.07,w,h)}
+function roof(c,x,y,w,h,light,dark){
+  if(w>=h){rr(c,x,y,w,h/2,light);rr(c,x,y+h/2,w,h/2,dark)}else{rr(c,x,y,w/2,h,light);rr(c,x+w/2,y,w/2,h,dark)}
+  if(WINTER){c.fillStyle='rgba(244,247,249,.6)';if(w>=h)c.fillRect(x,y,w,h/2);else c.fillRect(x,y,w/2,h)}
+  c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=Math.max(1,Math.min(w,h)*.05);c.strokeRect(x,y,w,h);
+  c.beginPath();if(w>=h){c.moveTo(x,y+h/2);c.lineTo(x+w,y+h/2)}else{c.moveTo(x+w/2,y);c.lineTo(x+w/2,y+h)}c.stroke();
+}
+function smoke(c,x,y,s,seed){for(let i=0;i<3;i++){const p=(NOW/1800+i/3+seed)%1;circ(c,x+p*s*.12,y-p*s*.35,s*(.04+.07*p),`rgba(232,232,228,${.55*(1-p)})`)}}
+function drawB(c,b,px,py,s,icon){
+  const x=px,y=py;
+  switch(b.type){
+  case 'road':{
+    const arms=icon?[[1,0],[-1,0]]:[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>bAt(b.x+dx,b.y+dy));
+    const dirt=WINTER?'#d8d0c2':'#b89e70', edge=WINTER?'#bfb5a4':'#9a8259';
+    for(const [col,ins] of [[edge,0],[dirt,.06]]){
+      c.fillStyle=col;const a=.28+ins,w=.44-ins*2;
+      c.fillRect(x+s*a,y+s*a,s*w,s*w);
+      for(const [dx,dy] of arms){if(dx===1)c.fillRect(x+s*a,y+s*a,s*(1-a),s*w);if(dx===-1)c.fillRect(x,y+s*a,s*(a+w),s*w);if(dy===1)c.fillRect(x+s*a,y+s*a,s*w,s*(1-a));if(dy===-1)c.fillRect(x+s*a,y,s*w,s*(a+w))}
+    }
+    break}
+  case 'house':{
+    if(b.lv===1){shade(c,x+s*.22,y+s*.28,s*.56,s*.44,s);roof(c,x+s*.22,y+s*.28,s*.56,s*.44,'#d6b265','#aa863f');rr(c,x+s*.45,y+s*.72,s*.1,s*.07,'#5a3a22')}
+    else if(b.lv===2){rr(c,x+s*.08,y+s*.08,s*.84,s*.84,WINTER?'rgba(255,255,255,.2)':'rgba(120,160,70,.35)');shade(c,x+s*.14,y+s*.2,s*.72,s*.54,s);roof(c,x+s*.14,y+s*.2,s*.72,s*.54,'#c4633f','#92432c');rr(c,x+s*.62,y+s*.24,s*.1,s*.1,'#6b6560');rr(c,x+s*.44,y+s*.74,s*.12,s*.07,'#4a2f1c');if(WINTER&&!icon)smoke(c,x+s*.67,y+s*.24,s,hash(b.x,b.y))}
+    else{shade(c,x+s*.06,y+s*.1,s*.88,s*.82,s);roof(c,x+s*.06,y+s*.1,s*.88,s*.42,'#73829a','#525e74');roof(c,x+s*.06,y+s*.5,s*.4,s*.42,'#73829a','#525e74');rr(c,x+s*.62,y+s*.6,s*.26,s*.26,'#7d9f4e');circ(c,x+s*.75,y+s*.73,s*.08,'#3f6b34');rr(c,x+s*.74,y+s*.14,s*.1,s*.1,'#6b6560');if(!icon)smoke(c,x+s*.79,y+s*.14,s,hash(b.x,b.y))}
+    break}
+  case 'farm':{
+    const soil=['#8a6a45','#7c6040','#8a6a45','#bdb4a6'][SEASON],row=['#93c55c','#6ea53c','#e0b84c','#eef1f2'][SEASON];
+    rr(c,x+s*.04,y+s*.04,s*.92,s*.92,icon?'#8a6a45':soil);
+    for(let i=0;i<5;i++)rr(c,x+s*.1,y+s*(.1+i*.17),s*.8,s*(SEASON===1||SEASON===2?.11:.07),icon?'#e0b84c':row);
+    c.strokeStyle='#6e5232';c.lineWidth=Math.max(1,s*.04);c.strokeRect(x+s*.04,y+s*.04,s*.92,s*.92);
+    break}
+  case 'lumber':{
+    shade(c,x+s*.12,y+s*.12,s*.46,s*.4,s);roof(c,x+s*.12,y+s*.12,s*.46,s*.4,'#8d6c4b','#654b33');
+    for(let i=0;i<3;i++){rr(c,x+s*.36,y+s*(.6+i*.11),s*.5,s*.1,'#8b5a2b');circ(c,x+s*.86,y+s*(.65+i*.11),s*.05,'#dcb47c')}
+    circ(c,x+s*.22,y+s*.74,s*.09,'#9b7048');circ(c,x+s*.22,y+s*.74,s*.05,'#dcb47c');
+    break}
+  case 'fisher':{
+    let dx=0,dy=1;if(!icon){for(const [ax,ay] of [[0,1],[1,0],[-1,0],[0,-1]]){if(ter(b.x+ax,b.y+ay)===0){dx=ax;dy=ay;break}}}
+    c.fillStyle='#9b7b52';const cx=x+s/2,cy=y+s/2;
+    if(dx)c.fillRect(dx>0?cx:cx-s*.75,cy-s*.08,s*.75,s*.16);else c.fillRect(cx-s*.08,dy>0?cy:cy-s*.75,s*.16,s*.75);
+    shade(c,x+s*.22,y+s*.22,s*.5,s*.42,s);roof(c,x+s*.22,y+s*.22,s*.5,s*.42,'#7f9174','#5d6c55');
+    c.strokeStyle='rgba(230,220,190,.6)';c.lineWidth=1;c.beginPath();for(let i=0;i<3;i++){c.moveTo(x+s*.1,y+s*(.74+i*.06));c.lineTo(x+s*.34,y+s*(.74+i*.06))}c.stroke();
+    break}
+  case 'quarry':{
+    rr(c,x+s*.06,y+s*.06,s*.88,s*.88,WINTER?'#cfcac2':'#948f85');rr(c,x+s*.16,y+s*.18,s*.46,s*.42,'#5c574f');rr(c,x+s*.16,y+s*.18,s*.46,s*.08,'#46423c');
+    rr(c,x+s*.62,y+s*.62,s*.2,s*.15,'#cdc7bb');rr(c,x+s*.4,y+s*.7,s*.18,s*.14,'#bfb8aa');rr(c,x+s*.7,y+s*.36,s*.14,s*.14,'#d6d0c4');
+    break}
+  case 'well':{
+    const cx=x+s/2,cy=y+s/2;circ(c,cx+s*.04,cy+s*.05,s*.25,'rgba(15,22,15,.28)');circ(c,cx,cy,s*.25,'#a09a90');circ(c,cx,cy,s*.16,WINTER?'#c7dbe5':'#2c5a78');
+    rr(c,cx-s*.32,cy-s*.03,s*.64,s*.06,'#6b4a2e');rr(c,cx-s*.34,cy-s*.07,s*.06,s*.14,'#55391f');rr(c,cx+s*.28,cy-s*.07,s*.06,s*.14,'#55391f');
+    break}
+  case 'market':{
+    rr(c,x+s*.04,y+s*.04,s*.92,s*.92,WINTER?'#ddd6c8':'#c4af87');
+    const st=[[.1,.12,'#b8433a'],[.54,.12,'#3d6aa0'],[.32,.55,'#4f8a4a']];
+    for(const [sx,sy,col] of st){shade(c,x+s*sx,y+s*sy,s*.36,s*.3,s);for(let k=0;k<4;k++)rr(c,x+s*(sx+k*.09),y+s*sy,s*.09,s*.3,k%2?'#efe7d6':col);c.strokeStyle='rgba(0,0,0,.3)';c.lineWidth=1;c.strokeRect(x+s*sx,y+s*sy,s*.36,s*.3)}
+    break}
+  case 'chapel':{
+    shade(c,x+s*.3,y+s*.22,s*.4,s*.72,s);roof(c,x+s*.3,y+s*.3,s*.4,s*.64,'#7b8090','#5b6070');
+    rr(c,x+s*.34,y+s*.06,s*.32,s*.28,'#cdc6b8');circ(c,x+s*.5,y+s*.2,s*.1,'#5b6070');
+    c.strokeStyle='#d4a84b';c.lineWidth=Math.max(1.2,s*.04);c.beginPath();c.moveTo(x+s*.5,y+s*.1);c.lineTo(x+s*.5,y+s*.3);c.moveTo(x+s*.42,y+s*.17);c.lineTo(x+s*.58,y+s*.17);c.stroke();
+    break}
+  case 'tower':{
+    const cx=x+s/2,cy=y+s*.55;circ(c,cx+s*.05,cy+s*.06,s*.34,'rgba(15,22,15,.3)');circ(c,cx,cy,s*.34,'#a69f93');
+    for(let k=0;k<8;k++){const a=k/8*6.283;rr(c,cx+Math.cos(a)*s*.3-s*.05,cy+Math.sin(a)*s*.3-s*.05,s*.1,s*.1,'#8c857a')}
+    circ(c,cx,cy,s*.2,WINTER?'#e6e8e8':'#7d776d');
+    c.strokeStyle='#4a3a2a';c.lineWidth=Math.max(1,s*.03);c.beginPath();c.moveTo(cx,cy);c.lineTo(cx,cy-s*.5);c.stroke();
+    const wv=Math.sin(NOW/300+b.x)*s*.04;c.fillStyle='#9e2f2f';c.beginPath();c.moveTo(cx,cy-s*.5);c.lineTo(cx+s*.3,cy-s*.43+wv);c.lineTo(cx,cy-s*.34);c.fill();
+    break}
+  case 'castle':{
+    const L=S?S.rank:0, S2=s*2;
+    c.fillStyle='rgba(15,22,15,.3)';c.fillRect(x+S2*.1,y+S2*.12,S2*.86,S2*.86);
+    if(L===0){
+      c.strokeStyle='#8b6a43';c.lineWidth=S2*.06;c.strokeRect(x+S2*.12,y+S2*.12,S2*.76,S2*.76);
+      rr(c,x+S2*.15,y+S2*.15,S2*.7,S2*.7,WINTER?'#d8d2c4':'#a99a74');
+      roof(c,x+S2*.28,y+S2*.26,S2*.44,S2*.36,'#9e7c55','#75593c');
+      circ(c,x+S2*.15,y+S2*.15,S2*.09,'#7a5c3a');
+    }else{
+      const wall=L>=4?'#c3bcae':'#aaa397';
+      rr(c,x+S2*.08,y+S2*.08,S2*.84,S2*.84,wall);rr(c,x+S2*.16,y+S2*.16,S2*.68,S2*.68,WINTER?'#e2ddd2':'#b7aa88');
+      for(let k=0;k<12;k++){const t=k/12;rr(c,x+S2*(.1+t*.8),y+S2*.06,S2*.04,S2*.04,'#8f887c');rr(c,x+S2*(.1+t*.8),y+S2*.9,S2*.04,S2*.04,'#8f887c')}
+      const tr=S2*(.1+L*.008);for(const [tx,ty] of [[.1,.1],[.9,.1],[.1,.9],[.9,.9]]){circ(c,x+S2*tx,y+S2*ty,tr,'#9a9386');circ(c,x+S2*tx,y+S2*ty,tr*.6,L>=4?'#3d5a8a':'#6d6659')}
+      rr(c,x+S2*.42,y+S2*.84,S2*.16,S2*.1,'#5a3e26');
+      const kw=.36+Math.min(L,5)*.03;
+      roof(c,x+S2*(.5-kw/2),y+S2*(.46-kw/2),S2*kw,S2*kw*.85,L>=3?'#4f6d9c':'#71809a',L>=3?'#3a5079':'#535f75');
+      if(L>=3){for(const [tx,ty] of [[.5-kw/2,.46-kw/2],[.5+kw/2,.46-kw/2]])circ(c,x+S2*tx,y+S2*ty,S2*.05,'#c9c2b4')}
+      if(L>=5){circ(c,x+S2*.5,y+S2*.42,S2*.06,'#d4a84b')}
+    }
+    if(L>=2){for(const fx of [.1,.9]){const px2=x+S2*fx,py2=y+S2*.1;c.strokeStyle='#3a2c20';c.lineWidth=Math.max(1,s*.04);c.beginPath();c.moveTo(px2,py2);c.lineTo(px2,py2-S2*.22);c.stroke();const wv=Math.sin(NOW/280+fx*7)*S2*.02;c.fillStyle='#8e2b2b';c.beginPath();c.moveTo(px2,py2-S2*.22);c.lineTo(px2+S2*.14,py2-S2*.19+wv);c.lineTo(px2,py2-S2*.15);c.fill()}}
+    break}
+  }
+}
+
+/* ---------- walkers & floaters ---------- */
+const CLOTH=['#7b3b2b','#3b5a7b','#5b6b3b','#7b6b3b','#5b3b6b','#8a7a5a'];
+function updateWalkers(dt){
+  const targets=S.buildings.filter(b=>b.type!=='road');
+  const want=Math.min(70,Math.floor(S.pop/2.5));
+  while(walkers.length<want&&targets.length){const b=targets[Math.floor(Math.random()*targets.length)],[cx,cy]=center(b);walkers.push({x:cx,y:cy+.3,tx:cx,ty:cy,sp:.5+Math.random()*.5,col:CLOTH[Math.floor(Math.random()*CLOTH.length)],wait:Math.random()*2})}
+  if(walkers.length>want)walkers.length=want;
+  const k=dt/1000*(S.speed||0);
+  for(const w of walkers){
+    if(w.wait>0){w.wait-=k;continue}
+    const dx=w.tx-w.x,dy=w.ty-w.y,d=Math.hypot(dx,dy);
+    if(d<.05){const b=targets[Math.floor(Math.random()*targets.length)];if(!b)continue;const [cx,cy]=center(b);w.tx=cx+(Math.random()-.5)*.3;w.ty=cy+.45;w.wait=.5+Math.random()*2;continue}
+    const st=Math.min(d,w.sp*k);w.x+=dx/d*st;w.y+=dy/d*st;
+  }
+}
+function floater(x,y,text,col){floaters.push({x,y,text,col,t:performance.now()})}
+
+/* ---------- main draw ---------- */
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#0d1112';ctx.fillRect(0,0,VW,VH);
+  const s=T*cam.z, ox=VW/2-cam.x*cam.z, oy=VH/2-cam.y*cam.z;
+  const x0=Math.max(0,Math.floor(-ox/s)),y0=Math.max(0,Math.floor(-oy/s)),x1=Math.min(W-1,Math.floor((VW-ox)/s)),y1=Math.min(H-1,Math.floor((VH-oy)/s));
+  const P=v=>Math.round(v);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const px=P(ox+x*s),py=P(oy+y*s),sz=P(ox+(x+1)*s)-px,szh=P(oy+(y+1)*s)-py;
+    if(!S.revealed[x+y*W]){ctx.fillStyle=hash(x,y)<.5?'#151b1d':'#171e21';ctx.fillRect(px,py,sz,szh);continue}
+    if(szh>sz){ctx.fillStyle=GRASS[SEASON][0];ctx.fillRect(px,py,sz,szh)}
+    drawTerrain(ctx,x,y,px,py,Math.max(sz,szh));
+  }
+  const vis=S.buildings.filter(b=>{const sz=DEF[b.type].size||1;return b.x+sz>=x0&&b.x<=x1+1&&b.y+sz>=y0&&b.y<=y1+1});
+  for(const b of vis)if(b.type==='road')drawB(ctx,b,ox+b.x*s,oy+b.y*s,s);
+  vis.sort((a,b)=>a.y-b.y);
+  for(const b of vis)if(b.type!=='road')drawB(ctx,b,ox+b.x*s,oy+b.y*s,s);
+  if(s>=14){for(const w of walkers){const wx=ox+w.x*s,wy=oy+w.y*s;if(wx<-10||wy<-10||wx>VW+10||wy>VH+10)continue;circ(ctx,wx,wy+s*.02,s*.07,'rgba(0,0,0,.25)');circ(ctx,wx,wy,s*.065,w.col);circ(ctx,wx,wy-s*.06,s*.04,'#e8c9a4')}}
+  // outside territory dim + border
+  ctx.lineWidth=Math.max(1.5,s*.06);ctx.strokeStyle='rgba(212,168,75,.85)';ctx.beginPath();
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const i=x+y*W;if(!S.revealed[i])continue;
+    const px=ox+x*s,py=oy+y*s;
+    if(!terr[i]){ctx.fillStyle='rgba(10,14,16,.42)';ctx.fillRect(P(px),P(py),P(px+s)-P(px),P(py+s)-P(py));continue}
+    if(x+1>=W||!terr[i+1]){ctx.moveTo(px+s,py);ctx.lineTo(px+s,py+s)}
+    if(x-1<0||!terr[i-1]){ctx.moveTo(px,py);ctx.lineTo(px,py+s)}
+    if(y+1>=H||!terr[i+W]){ctx.moveTo(px,py+s);ctx.lineTo(px+s,py+s)}
+    if(y-1<0||!terr[i-W]){ctx.moveTo(px,py);ctx.lineTo(px+s,py)}
+  }
+  ctx.stroke();
+  // fog softening on revealed edge
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=x+y*W;if(!S.revealed[i])continue;let n=0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&!S.revealed[xx+yy*W])n++}
+    if(n){ctx.fillStyle=`rgba(21,27,29,${.25*n})`;ctx.fillRect(P(ox+x*s),P(oy+y*s),P(ox+(x+1)*s)-P(ox+x*s),P(oy+(y+1)*s)-P(oy+y*s))}}
+  // ghost
+  if(hover&&DEF[tool]&&tool!=='castle'){
+    const [hx,hy]=hover,px=ox+hx*s,py=oy+hy*s,ok=!canPlace(tool,hx,hy)&&S.rank>=DEF[tool].rank&&afford(DEF[tool].cost);
+    ctx.globalAlpha=.65;drawB(ctx,{type:tool,x:hx,y:hy,lv:1},px,py,s,false);ctx.globalAlpha=1;
+    ctx.strokeStyle=ok?'rgba(140,198,111,.95)':'rgba(229,122,98,.95)';ctx.lineWidth=2;ctx.strokeRect(px+1,py+1,s-2,s-2);
+  }else if(hover&&(tool==='clear'||tool==='demolish')){const [hx,hy]=hover;ctx.strokeStyle='rgba(236,230,214,.8)';ctx.lineWidth=2;ctx.strokeRect(ox+hx*s+1,oy+hy*s+1,s-2,s-2)}
+  if(infoTarget){const t=infoTarget.b?[infoTarget.b.x,infoTarget.b.y,DEF[infoTarget.b.type].size||1]:[...infoTarget.tile,1];ctx.strokeStyle='#f2d27a';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(ox+t[0]*s,oy+t[1]*s,t[2]*s,t[2]*s);ctx.setLineDash([])}
+  // floaters
+  const now=performance.now();floaters=floaters.filter(f=>now-f.t<1400);
+  ctx.font='700 13px "Zen Kaku Gothic New",system-ui,sans-serif';ctx.textAlign='center';
+  for(const f of floaters){const p=(now-f.t)/1400,fx=ox+f.x*s,fy=oy+f.y*s-p*34;ctx.globalAlpha=1-p*p;ctx.lineWidth=3;ctx.strokeStyle='rgba(15,18,20,.85)';ctx.strokeText(f.text,fx,fy);ctx.fillStyle=f.col;ctx.fillText(f.text,fx,fy);ctx.globalAlpha=1}
+  // winter haze
+  if(WINTER){ctx.fillStyle='rgba(200,215,230,.06)';ctx.fillRect(0,0,VW,VH)}
+}
+
+function loop(t){
+  const dt=Math.min(100,t-(lastT||t));lastT=t;NOW=t;
+  SEASON=seasonIdx();WINTER=SEASON===3;
+  if(S.speed>0){acc+=dt*S.speed;let n=0;while(acc>=DAY_MS&&n<8){acc-=DAY_MS;simDay();n++}}
+  updateWalkers(dt);draw();requestAnimationFrame(loop);
+}
+
+/* ---------- camera & input ---------- */
+function fitZoom(){return clamp(Math.min(VW||400,VH||600)/(13*T),.6,2)}
+function clampCam(){cam.z=clamp(cam.z,.35,3);cam.x=clamp(cam.x,0,W*T);cam.y=clamp(cam.y,0,H*T)}
+function toTile(sx,sy){const wx=(sx-VW/2)/cam.z+cam.x,wy=(sy-VH/2)/cam.z+cam.y;return [Math.floor(wx/T),Math.floor(wy/T)]}
+function zoomAt(sx,sy,f){const wx=(sx-VW/2)/cam.z+cam.x,wy=(sy-VH/2)/cam.z+cam.y;cam.z=clamp(cam.z*f,.35,3);cam.x=wx-(sx-VW/2)/cam.z;cam.y=wy-(sy-VH/2)/cam.z;clampCam()}
+function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);VW=r.width;VH=r.height;cv.width=Math.round(VW*dpr);cv.height=Math.round(VH*dpr)}
+const ptrs=new Map();let G=null;
+function loc(e){const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}}
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);const p=loc(e);ptrs.set(e.pointerId,p);
+  if(ptrs.size===1){G={t:'one',sx:p.x,sy:p.y,lx:p.x,ly:p.y,moved:false,paint:tool==='road'&&e.button===0,last:null};
+    if(e.button!==0)G.moved=true;
+    if(G.paint){const [tx,ty]=toTile(p.x,p.y);G.last=tx+','+ty;build('road',tx,ty,false)}}
+  else if(ptrs.size===2){const [a,b]=[...ptrs.values()];G={t:'pinch',d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}}
+});
+cv.addEventListener('pointermove',e=>{
+  const p=loc(e);
+  if(e.pointerType==='mouse'){const t=toTile(p.x,p.y);hover=(t[0]>=0&&t[1]>=0&&t[0]<W&&t[1]<H)?t:null}
+  if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,p);
+  if(!G)return;
+  if(G.t==='pinch'&&ptrs.size>=2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(G.d>0)zoomAt(mx,my,d/G.d);cam.x-=(mx-G.mx)/cam.z;cam.y-=(my-G.my)/cam.z;clampCam();G.d=d;G.mx=mx;G.my=my;return}
+  if(G.t!=='one')return;
+  if(G.paint){const [tx,ty]=toTile(p.x,p.y),k=tx+','+ty;if(k!==G.last){G.last=k;build('road',tx,ty,true)}return}
+  const dx=p.x-G.lx,dy=p.y-G.ly;
+  if(!G.moved&&Math.hypot(p.x-G.sx,p.y-G.sy)>7)G.moved=true;
+  if(G.moved){cam.x-=dx/cam.z;cam.y-=dy/cam.z;clampCam();cv.style.cursor='grabbing'}
+  G.lx=p.x;G.ly=p.y;
+});
+function endPtr(e){
+  const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);cv.style.cursor='';
+  if(!had||!G)return;
+  if(G.t==='one'&&!G.moved&&!G.paint&&e.type==='pointerup'){const p=loc(e),[tx,ty]=toTile(p.x,p.y);tap(tx,ty)}
+  if(ptrs.size===0)G=null;else G={t:'none'};
+}
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hover=null});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('wheel',e=>{e.preventDefault();const p=loc(e);zoomAt(p.x,p.y,Math.exp(-e.deltaY*.0015))},{passive:false});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){setTool('inspect');closeInfo()}if(e.key===' '&&e.target===document.body){e.preventDefault();setSpeed(S.speed?0:1)}});
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+window.addEventListener('pagehide',save);
+
+/* ---------- UI ---------- */
+function toast(msg,kind=''){
+  const box=$('#toasts'),el=document.createElement('div');el.className='toast '+kind;el.textContent=msg;box.prepend(el);
+  while(box.children.length>3)box.lastChild.remove();
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),500)},5200);
+}
+function renderHUD(){
+  const fmt=v=>v>=1000?(v/1000).toFixed(1)+'k':Math.floor(v);
+  const rate=k=>{const r=S.rates[k]||0;if(Math.abs(r)<.05)return '';return `<small class="${r>0?'up':'down'}">${r>0?'+':''}${r.toFixed(1)}</small>`};
+  const j=jobs(),c=cap();
+  $('#res').innerHTML=RES.map(([k,n,col])=>`<span class="chip"><i style="background:${col}"></i><span class="k">${n}</span><b>${fmt(S.res[k])}</b>${rate(k)}</span>`).join('')+
+    `<span class="chip"><i style="background:#d8d2c4;border-radius:50%"></i><span class="k">人口</span><b>${S.pop}</b><small>/${c}</small>${j>S.pop?`<small class="down">人手${Math.round(S.emp*100)}%</small>`:''}</span>`;
+  $('#date').textContent=`${YEAR0+Math.floor(S.day/60)}年 ${SEASONS[seasonIdx()]} ${S.day%SEASON_DAYS+1}日`;
+  const g=GOALS[S.goal],next=RANKS[S.rank+1];
+  let html=`<div class="rank"><strong>${RANKS[S.rank].name}</strong><span>${next?`次の「${next.name}」まで 人口${Math.max(0,next.pop-S.pop)}人`:'最高の称号に到達'}</span></div>`;
+  if(g){const pr=g.p?g.p():0;html+=`<div class="task">目標: ${g.t} <em>${g.p?Math.round(pr*100)+'%':''}</em></div><div class="bar"><div style="width:${Math.round(pr*100)}%"></div></div>`}
+  else html+=`<div class="task">すべての目標を達成した。自由に王都を広げよう</div>`;
+  if(S.goal===0)html+=`<div class="hint">下の一覧から建物を選び、地図をタップして建てる。ドラッグで移動、ピンチやホイールで拡大。</div>`;
+  $('#goal').innerHTML=html;
+  for(const el of document.querySelectorAll('.tool[data-b]')){const d=DEF[el.dataset.b],cEl=el.querySelector('.c');if(S.rank>=d.rank)cEl.classList.toggle('short',!afford(d.cost))}
+}
+function setSpeed(v){S.speed=v;for(const b of document.querySelectorAll('.speed button'))b.setAttribute('aria-pressed',String(+b.dataset.speed===v))}
+for(const b of document.querySelectorAll('.speed button'))b.addEventListener('click',()=>setSpeed(+b.dataset.speed));
+function setTool(t){tool=t;for(const el of document.querySelectorAll('.tool'))el.setAttribute('aria-pressed',String(el.dataset.t===t));if(!DEF[t])return;const d=DEF[t];if(S.rank<d.rank)toast(`${d.name}は「${RANKS[d.rank].name}」になると建てられる`);else toast(`${d.name}: ${d.desc}`)}
+function iconCanvas(drawFn){const c=document.createElement('canvas'),k=2;c.width=38*k;c.height=38*k;const x=c.getContext('2d');x.scale(k,k);drawFn(x);return c}
+function renderTools(){
+  const box=$('#tools');box.innerHTML='';
+  TOOLS.forEach((t,i)=>{const el=document.createElement('button');el.className='tool'+(i===TOOLS.length-1?' sep':'');el.dataset.t=t.id;
+    el.append(iconCanvas(c=>{
+      if(t.id==='inspect'){c.strokeStyle='#ece6d6';c.lineWidth=3;c.beginPath();c.arc(16,16,8,0,7);c.stroke();c.beginPath();c.moveTo(22,22);c.lineTo(31,31);c.stroke()}
+      if(t.id==='clear'){const sv=SEASON;SEASON=1;rr(c,0,0,38,38,'#6d9c41');circ(c,13,15,8,'#2f6b33');circ(c,25,22,8,'#2f6b33');SEASON=sv;c.strokeStyle='#d6d0c4';c.lineWidth=3;c.beginPath();c.moveTo(8,32);c.lineTo(30,8);c.stroke();rr(c,26,6,8,6,'#9aa1a6')}
+      if(t.id==='demolish'){c.strokeStyle='#e57a62';c.lineWidth=3.5;c.beginPath();c.moveTo(9,9);c.lineTo(29,29);c.moveTo(29,9);c.lineTo(9,29);c.stroke()}
+    }));
+    el.insertAdjacentHTML('beforeend',`<span class="n">${t.name}</span><span class="c">${t.hint}</span>`);
+    el.addEventListener('click',()=>setTool(t.id));box.append(el)});
+  for(const k of BUILD_ORDER){const d=DEF[k],el=document.createElement('button');el.className='tool'+(S.rank<d.rank?' locked':'');el.dataset.t=k;el.dataset.b=k;
+    el.append(iconCanvas(c=>{const w=WINTER;WINTER=false;drawB(c,{type:k,x:0,y:0,lv:k==='house'?2:1},1,1,36,true);WINTER=w}));
+    el.insertAdjacentHTML('beforeend',`<span class="n">${d.name}</span><span class="c">${S.rank<d.rank?RANKS[d.rank].name+'で解放':costText(d.cost)}</span>`);
+    el.addEventListener('click',()=>setTool(k));box.append(el)}
+  for(const el of box.children)el.setAttribute('aria-pressed',String(el.dataset.t===tool));
+}
+function openInfo(t){infoTarget=t;renderInfo();$('#info').hidden=false}
+function closeInfo(){infoTarget=null;$('#info').hidden=true}
+let demolishArm=0;
+function renderInfo(){
+  const box=$('#info');if(!infoTarget)return;
+  const li=(ok,txt)=>`<li class="${ok?'ok':'no'}"><span class="m">${ok?'○':'×'}</span>${txt}</li>`;
+  let h='<button class="close" aria-label="閉じる">×</button>';
+  if(infoTarget.tile){const [x,y]=infoTarget.tile,t=S.terrain[x+y*W];h+=`<h2>${TERRAIN_NAME[t]}</h2><p>${TERRAIN_DESC[t]}${terr[x+y*W]?'':' (まだ領土の外)'}</p>`}
+  else{
+    const b=infoTarget.b,d=DEF[b.type],r=S.emp;
+    if(!bmap.has(b.id)){closeInfo();return}
+    if(b.type==='house'){
+      h+=`<h2>${['','小屋','木組みの家','石造りの屋敷'][b.lv]}<small>段階 ${b.lv}/3</small></h2><div class="stat">${HOUSE_CAP[b.lv]}人が住める</div>`;
+      if(b.lv===1)h+=`<p>2段目に育つ条件</p><ul>${li(roadAdj(b),'道に面している(上下左右)')}${li(near(b,'well',4),'4マス以内に井戸がある')}${li(S.res.food>2,'食料の蓄えがある')}</ul>`;
+      else if(b.lv===2)h+=`<p>3段目に育つ条件</p><ul>${li(roadAdj(b),'道に面している')}${li(near(b,'market',6),'6マス以内に市場がある'+(S.rank<1?'(村で解放)':''))}${li(near(b,'chapel',6),'6マス以内に礼拝堂がある'+(S.rank<2?'(町で解放)':''))}</ul>`;
+      else h+=`<p>これ以上は育たない、領地自慢の屋敷。</p>`;
+    }else if(b.type==='castle'){
+      const next=RANKS[S.rank+1];
+      h+=`<h2>城<small>${RANKS[S.rank].name}</small></h2><p>領地の中心。人口が増えて称号が上がるたびに城が大きくなり、まわりの領土も広がる。</p><div class="stat">領土の半径 ${Math.floor(5.6+S.rank)}マス・住める人数 6人</div>`+
+        (next?`<div class="stat">次の「${next.name}」まで 人口 ${S.pop}/${next.pop}</div>`:'')+`<div class="stat">働き手 ${S.pop}人 / 仕事 ${jobs()}人分</div>`;
+    }else{
+      h+=`<h2>${d.name}</h2><p>${d.desc}</p>`;
+      const se=seasonIdx();let out='';
+      if(b.type==='farm')out=`食料 +${(2.4*FARM_SEASON[se]*r).toFixed(1)} /日(${SEASONS[se]})`;
+      if(b.type==='fisher')out=`食料 +${((se===3?1.3:2.0)*r).toFixed(1)} /日`;
+      if(b.type==='lumber')out=`木材 +${(Math.min(3.5,.4+.6*count8(b.x,b.y,2))*r).toFixed(1)} /日(となりの森 ${count8(b.x,b.y,2)}マス)`;
+      if(b.type==='quarry')out=`石材 +${(1.6*r).toFixed(1)} /日`;
+      if(b.type==='market')out=`金貨 +${(2.2*r).toFixed(1)} /日`;
+      if(out)h+=`<div class="stat">${out}</div>`;
+      if(d.workers)h+=`<div class="stat">働き手 ${d.workers}人${r<1?`(人手不足で ${Math.round(r*100)}% しか働けていない)`:''}</div>`;
+    }
+    if(b.type!=='castle')h+=`<button class="act" id="infoDemolish">${demolishArm>performance.now()?'もう一度押すと取り壊す':'取り壊す(半額もどる)'}</button>`;
+  }
+  box.innerHTML=h;
+  box.querySelector('.close').onclick=closeInfo;
+  const db=box.querySelector('#infoDemolish');
+  if(db)db.onclick=()=>{if(demolishArm>performance.now()){demolishArm=0;demolish(infoTarget.b)}else{demolishArm=performance.now()+3000;renderInfo();setTimeout(()=>{if(infoTarget)renderInfo()},3050)}};
+}
+let resetArm=0;
+$('#menuBtn').addEventListener('click',()=>{
+  const btn=$('#menuBtn');
+  if(resetArm>performance.now()){resetArm=0;btn.classList.remove('armed');btn.textContent='新しい土地';newGame();setSpeed(1);renderTools();renderHUD();save();toast('新しい辺境の地にたどり着いた。まずは家を建てよう','good');return}
+  resetArm=performance.now()+3000;btn.classList.add('armed');btn.textContent='今の領地を捨てる?';
+  setTimeout(()=>{if(resetArm&&resetArm<=performance.now()+50){resetArm=0;btn.classList.remove('armed');btn.textContent='新しい土地'}},3100);
+});
+
+/* ---------- boot ---------- */
+resize();
+if(!load()){newGame();setTimeout(()=>toast('辺境の地に小さな砦を築いた。ここから領地を広げていこう','good'),300)}
+else toast(`おかえり。${RANKS[S.rank].name}の領地は${S.pop}人で暮らしている`);
+SEASON=seasonIdx();WINTER=SEASON===3;
+setSpeed(S.speed??1);renderTools();renderHUD();
+requestAnimationFrame(loop);
+})();
+</script>
+<!--ARTIFACT-END-->
+</body>
+</html>
