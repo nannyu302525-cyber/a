@@ -122,6 +122,20 @@
   .chat-ctx{font-size:.8rem;color:var(--sub);margin:0 0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .goal{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px;}
   .goal-left{margin-left:auto;font-size:.76rem;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .hintbox{font-size:.82rem;color:var(--sub);margin-bottom:8px;}
+  .hintbox summary{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hintbox p{margin-top:6px;line-height:1.7;}
+  .hintbox b{color:var(--ink);}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .filters .btn.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+  details.cat{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;}
+  details.cat>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;font-weight:700;}
+  details.cat>summary::-webkit-details-marker{display:none;}
+  details.cat>summary span.grow{flex:1;min-width:0;}
+  details.cat>summary .n{font-size:.8rem;color:var(--sub);font-weight:400;font-variant-numeric:tabular-nums;}
+  details.cat .list{padding:0 10px 10px;margin:0;}
+  details.cat .row-btn{background:var(--bg);padding:10px 12px;}
+  details.cat .row-btn .ttl{font-weight:400;font-size:.92rem;-webkit-line-clamp:3;}
   .end{display:flex;flex-direction:column;gap:8px;padding-top:6px;}
   .end .big{padding:12px 16px;font-size:1rem;align-items:center;}
   .msgs{display:flex;flex-direction:column;gap:10px;flex:1;padding-bottom:14px;}
@@ -304,7 +318,7 @@ function askConfirm(msg, okLabel) {
 /* ================= 保存（claude.aiでは本人だけのDB、それ以外はこの端末） ================= */
 const LOCAL_KEY = 'es-deepdive-v1';
 const caps = { db: null, col: null, sample: null, downloads: null, images: null };
-let state = { companies: [], profile: normProfile() };
+let state = { companies: [], profile: normProfile(), qbank: null, qa: {} };
 let ready = false;
 const saveTimers = {};
 
@@ -347,12 +361,25 @@ async function removeCompany(c) {
   if (caps.col) { try { await caps.col.doc(c.id).delete(); } catch (e) { toast('削除に失敗しました'); } }
   else writeLocal();
 }
-function flushAll() { Object.keys(saveTimers).forEach(id => { const c = id === '_profile' ? state.profile : state.companies.find(x => x.id === id); if (c) saveCompany(c, true); }); }
+// 保存する1件を id から探す（企業 / 自己分析ノート / 面接質問ごとの会話）
+function docById(id) {
+  if (id === '_profile') return state.profile;
+  if (id.startsWith('qb-')) return state.qa[id.slice(3)];
+  return state.companies.find(x => x.id === id);
+}
+function flushAll() { Object.keys(saveTimers).forEach(id => { const c = docById(id); if (c) saveCompany(c, true); }); }
+// 面接質問集（Excelから取り込んだ質問）と、質問ごとの会話
+function normLocalExtras() { state.qbank = state.qbank && Array.isArray(state.qbank.items) ? state.qbank : null; state.qa = state.qa || {}; Object.keys(state.qa).forEach(qaOf); }
+function qaOf(no) {
+  const a = state.qa[no] = state.qa[no] || {};
+  a.id = 'qb-' + no; a.thread = a.thread || {}; a.thread.chat = a.thread.chat || []; a.thread.asked = a.thread.asked || [];
+  return a;
+}
 window.addEventListener('pagehide', flushAll);
 
 async function initStore() {
   const hasClaude = typeof window.claude === 'object' && window.claude && typeof window.claude.use === 'function';
-  if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile); ready = true; render(); registerSW(); return; }
+  if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile); normLocalExtras(); ready = true; render(); registerSW(); return; }
   // claude.ai の中：AIはあなたのプランで、データはあなた専用の保存場所へ
   window.claude.use('sample').then(async s => {
     caps.sample = s;
@@ -368,11 +395,15 @@ async function initStore() {
     try {
       const snap = await caps.col.get();
       const docs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-      state = { companies: docs.filter(d => d.id !== '_profile').map(normalize), profile: normProfile(docs.find(d => d.id === '_profile')) };
+      const special = d => d.id.startsWith('_') || d.id.startsWith('qb-');
+      const qb = docs.find(d => d.id === '_qbank');
+      state = { companies: docs.filter(d => !special(d)).map(normalize), profile: normProfile(docs.find(d => d.id === '_profile')),
+        qbank: qb && Array.isArray(qb.items) ? qb : null, qa: {} };
+      docs.filter(d => d.id.startsWith('qb-')).forEach(d => { state.qa[d.id.slice(3)] = d; qaOf(d.id.slice(3)); });
     } catch (e) { toast('データを読み込めませんでした'); }
     clearTimeout(slow);
   } else {
-    state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile);
+    state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile); normLocalExtras();
   }
   ready = true; render();
 }
@@ -617,6 +648,10 @@ function insightText(max) {
   return xs.length ? xs.map(x => `- ${x.cat}：${x.text}`).join('\n') : 'まだなし';
 }
 function ctxText(ctx) {
+  if (ctx.kind === 'bank') return `<purpose>面接でよく聞かれる質問への、本人の回答づくり</purpose>
+<question>${ctx.item.q}</question>
+<guide>聞かれやすい場面：${ctx.item.phase}／回答の組み立ての型：${ctx.item.frame}／ポイント：${ctx.item.point}</guide>
+<self_analysis_notes>\n${insightText(25)}\n</self_analysis_notes>`;
   if (ctx.kind === 'self') return `<purpose>自己分析（特定の企業向けではない）</purpose>\n<self_analysis_notes>\n${insightText(25)}\n</self_analysis_notes>`;
   const c = ctx.company, q = ctx.q;
   return `<company>${c.name}${c.industry ? '（' + c.industry + '）' : ''}${c.status ? ' / 選考状況：' + c.status : ''}</company>
@@ -688,7 +723,7 @@ ${transcriptText(topicSlice(ctx.thread.chat))}
 
 ルール：
 - 会話とESに出てきた事実だけを使う。誇張したり、話していないエピソードや数字を作ったりしない
-- 本人の言葉づかいや温度感はできるだけ残す
+${ctx.kind === 'bank' ? `- answer は「${ctx.item.frame}」の型に沿って組み立てる（ポイント：${ctx.item.point}）\n` : ''}- 本人の言葉づかいや温度感はできるだけ残す
 
 出力は次の形のJSONだけにしてください（前後に文章を付けない）：
 {"answer":"面接で「${topicQ}」と聞かれたときの答え。話し言葉で、結論から。250〜300字（1分ほどで話せる長さ）"${esSpec},
@@ -769,6 +804,7 @@ function render() {
   const app = $('#app');
   if (!ready) { app.innerHTML = '<div class="empty">読み込み中…</div>'; return; }
   if (route.view === 'profile') { app.innerHTML = profileView(); bindProfile(); return; }
+  if (route.view === 'bank' && state.qbank) { app.innerHTML = bankView(); bindBank(); return; }
   if (route.view === 'chat') { const ctx = chatCtx(); if (ctx) { renderChat(ctx); return; } route = { view: 'home' }; }
   const c = curCompany();
   if (['company', 'q'].includes(route.view) && !c) route = { view: 'home', id: null, qid: null };
@@ -809,6 +845,7 @@ function homeView() {
   return `<header class="top"><h1>ES深掘りノート</h1><button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
     <div class="stack">
       <button class="big primary" type="button" id="btnProfile">🧭 自己分析ノート<small>${ni ? `強み・価値観など ${ni}件` : '質問に答えるだけで、強みや価値観を一緒に言葉にします'}</small></button>
+      ${state.qbank ? `<button class="big" type="button" id="btnBank">📚 面接質問 ${state.qbank.items.length}問<small>${bankDone()}問 まとめ済 ・ カテゴリから選んで、答えるだけ</small></button>` : ''}
       ${caps.images ? `<button class="big" type="button" id="btnImg">📷 ESの画像から追加<small>スクショや写真を選ぶだけで、企業・設問・回答を読み取ります</small></button>` : ''}
       <button class="big" type="button" id="btnAdd">＋ 企業を追加<small>手で入力する</small></button>
     </div>
@@ -818,6 +855,7 @@ function homeView() {
 }
 function bindHome() {
   $('#btnProfile').onclick = () => go({ view: 'profile' });
+  const bb = $('#btnBank'); if (bb) bb.onclick = () => go({ view: 'bank' });
   $('#btnAdd').onclick = () => openCompanyDialog(null);
   $('#btnSettings').onclick = openSettings;
   const bi = $('#btnImg'); if (bi) bi.onclick = () => $('#fileImg').click();
@@ -896,6 +934,10 @@ function profileAsText() {
   });
   const ps = sums(state.profile.thread);
   if (ps.length) { L.push('■ 面接での答え方'); ps.forEach(m => L.push(`Q. ${m.topic}`, m.answer, '')); }
+  if (state.qbank) {
+    const done = state.qbank.items.filter(it => state.qa[it.no] && sums(state.qa[it.no].thread).length);
+    if (done.length) { L.push('■ 面接質問への回答'); done.forEach(it => { const m = sums(state.qa[it.no].thread).slice(-1)[0]; L.push(`${it.no}［${it.cat}］${it.q}`, m.answer, ''); }); }
+  }
   state.companies.forEach(c => {
     const qs = c.questions.filter(q => (q.answer || '').trim() || sums(q.thread).length); if (!qs.length) return;
     L.push(`■ ${c.name}（${c.status || ''}）`);
@@ -915,6 +957,51 @@ async function exportProfileText() {
     a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); return;
   }
   copyText(text);
+}
+
+/* ---- 面接質問集（Excelから取り込んだ質問） ---- */
+let bankPhase = '';
+const PHASES = ['一次', '二次', '最終'];
+function phaseHas(phase, f) {
+  if (!f || /^全/.test(phase)) return true;
+  const idx = PHASES.map((x, i) => phase.includes(x) ? i : -1).filter(i => i >= 0);
+  if (!idx.length) return true;
+  const fi = PHASES.indexOf(f);
+  return phase.includes('〜') ? fi >= Math.min(...idx) && fi <= Math.max(...idx) : idx.includes(fi);
+}
+function bankStatus(no) {
+  const a = state.qa[no]; if (!a || !a.thread.chat.some(m => m.role === 'me')) return '';
+  return sums(a.thread).length ? 'done' : 'doing';
+}
+const bankDone = () => state.qbank.items.filter(it => bankStatus(it.no) === 'done').length;
+function bankView() {
+  const items = state.qbank.items.filter(it => phaseHas(it.phase, bankPhase));
+  const cats = [...new Set(items.map(it => it.cat))];
+  const html = cats.map(cat => {
+    const xs = items.filter(it => it.cat === cat), d = xs.filter(it => bankStatus(it.no) === 'done').length;
+    return `<details class="cat" data-cat="${esc(cat)}" ${bankOpen.has(cat) ? 'open' : ''}><summary><span class="grow">${esc(cat)}</span>
+        ${d === xs.length ? '<span class="pill ok">完了</span>' : ''}<span class="n">${d} / ${xs.length}</span></summary>
+      <div class="list">${xs.map(it => { const st = bankStatus(it.no); return `<button class="row-btn bq" type="button" data-no="${esc(it.no)}">
+        <div class="grow"><div class="ttl">${esc(it.q)}</div><div class="meta">${esc(it.phase)} ・ ${esc(it.frame)}</div></div>
+        ${st === 'done' ? '<span class="pill ok">まとめ済</span>' : st === 'doing' ? '<span class="pill warn">途中</span>' : '<span class="chev">›</span>'}</button>`; }).join('')}</div></details>`;
+  }).join('');
+  return `<header class="top"><button class="icon" id="btnBack" aria-label="一覧に戻る">←</button><h1>面接質問</h1>
+      <span class="muted">${bankDone()} / ${state.qbank.items.length}</span></header>
+    <div class="stack"><button class="big primary" type="button" id="btnRandom">🎲 おまかせで1問<small>まだ答えていない質問から出します</small></button></div>
+    <div class="filters" role="group" aria-label="選考の段階で絞り込む">${['', ...PHASES].map(f => `<button class="btn small ${bankPhase === f ? 'sel' : ''}" type="button" data-phase="${f}">${f || 'すべて'}</button>`).join('')}</div>
+    ${html || '<div class="empty">該当する質問がありません</div>'}`;
+}
+const bankOpen = new Set();
+function bindBank() {
+  $('#btnBack').onclick = () => go({ view: 'home' });
+  document.querySelectorAll('[data-phase]').forEach(b => b.onclick = () => { bankPhase = b.dataset.phase; render(); });
+  document.querySelectorAll('details.cat').forEach(d => d.addEventListener('toggle', () => { d.open ? bankOpen.add(d.dataset.cat) : bankOpen.delete(d.dataset.cat); }));
+  document.querySelectorAll('.bq').forEach(b => b.onclick = () => go({ view: 'chat', id: '_qb', qid: b.dataset.no }));
+  $('#btnRandom').onclick = () => {
+    const pool = state.qbank.items.filter(it => phaseHas(it.phase, bankPhase) && bankStatus(it.no) !== 'done');
+    if (!pool.length) { toast('この条件の質問は、すべてまとめ済みです'); return; }
+    go({ view: 'chat', id: '_qb', qid: pool[Math.floor(Math.random() * pool.length)].no });
+  };
 }
 
 /* ---- 企業 ---- */
@@ -1090,6 +1177,8 @@ $('#fileImport').onchange = async e => {
     if (i >= 0) state.companies[i] = c; else state.companies.push(c);
     saveCompany(c, true);
   });
+  if (d.qbank && Array.isArray(d.qbank.items) && !state.qbank) { state.qbank = { ...d.qbank, id: '_qbank' }; saveCompany(state.qbank, true); }
+  Object.keys(d.qa || {}).forEach(no => { if (!state.qa[no]) { state.qa[no] = d.qa[no]; saveCompany(qaOf(no), true); } });
   if (d.profile) {
     const pr = normProfile(d.profile), have = new Set(state.profile.insights.map(x => x.text));
     pr.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push(x));
@@ -1114,6 +1203,13 @@ const SELF_TOPICS = [
 ];
 let chatUi = { busy: '', aiOff: false, key: '' };
 function chatCtx() {
+  if (route.id === '_qb') {
+    const item = state.qbank && state.qbank.items.find(x => x.no === route.qid); if (!item) return null;
+    const a = qaOf(item.no), same = state.qbank.items.filter(x => x.cat === item.cat), nx = same[same.indexOf(item) + 1];
+    return { kind: 'bank', item, thread: a.thread, save: () => saveCompany(a), title: item.cat, back: () => go({ view: 'bank' }),
+      next: nx ? () => { chatUi.key = ''; go({ view: 'chat', id: '_qb', qid: nx.no }); } : () => { chatUi.key = ''; go({ view: 'bank' }); },
+      nextLabel: nx ? '次の質問へ' : 'カテゴリ一覧へ' };
+  }
   if (route.id === '_profile') {
     return { kind: 'self', thread: state.profile.thread, save: saveProfile, title: '自己分析', back: () => go({ view: 'profile' }) };
   }
@@ -1130,6 +1226,7 @@ function pushMsg(ctx, m) {
 function pickTopic(ctx) {
   const asked = new Set(ctx.thread.asked || []);
   let cands;
+  if (ctx.kind === 'bank') return asked.has(ctx.item.q) ? null : { q: ctx.item.q, intent: `型：${ctx.item.frame}` };
   if (ctx.kind === 'self') cands = SELF_TOPICS.map(([q, intent]) => ({ q, intent }));
   else cands = topNodes(ctx.company, ctx.q).sort((a, b) => priority(a) - priority(b));
   const next = cands.find(x => !asked.has(x.q));
@@ -1180,13 +1277,13 @@ function renderChat(ctx) {
       <div class="end">
         <p class="muted">${st.summed ? 'この話題はゴールです。回答は上にまとめてあります。' : 'この話題はここまでにしましょう。'}</p>
         ${caps.sample && !st.summed ? '<button class="big" type="button" id="chSum">📝 回答にまとめる</button>' : ''}
-        <button class="big primary" type="button" id="chNext">次の質問へ</button>
+        <button class="big primary" type="button" id="chNext">${ctx.nextLabel || '次の質問へ'}</button>
         <button class="big" type="button" id="chEnd">終わる</button>
         <button class="btn link" type="button" id="chMore">この話題をもう少し続ける</button>
       </div>` : `
       <div class="chips">
         ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${answered && !busy ? '' : 'disabled'}>📝 ここで回答にまとめる</button>` : ''}
-        <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ 別の質問へ</button>
+        <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ ${ctx.kind === 'bank' ? ctx.nextLabel : '別の質問へ'}</button>
       </div>
       <div class="send-row">
         <textarea class="t" id="chIn" rows="2" placeholder="ざっくばらんに答えてOK" aria-label="答え" ${busy ? 'disabled' : ''}>${esc(chatUi.draft || '')}</textarea>
@@ -1196,6 +1293,8 @@ function renderChat(ctx) {
     <div class="chat-top"><header class="top"><button class="icon" id="chBack" aria-label="戻る">←</button>
       <h1>${esc(ctx.title)}</h1></header>
       ${ctx.kind === 'es' ? `<div class="chat-ctx">設問：${esc(ctx.q.title)}</div>` : ''}
+      ${ctx.kind === 'bank' ? `<details class="hintbox"><summary>${esc(ctx.item.no)} ・ ${esc(ctx.item.phase)} ・ ポイントと回答例を見る</summary>
+        <p><b>型</b>：${esc(ctx.item.frame)}</p><p><b>ポイント</b>：${esc(ctx.item.point)}</p><p><b>回答例</b>：${esc(ctx.item.example)}</p></details>` : ''}
       ${goalHtml(st)}</div>
     <div class="msgs" id="msgs">${chat.map((m, i) => msgHtml(m, i, ctx)).join('')}
       ${busy ? `<div class="msg ai typing"><span class="spin"></span>${esc(busy)}</div>` : ''}</div>
@@ -1205,7 +1304,7 @@ function renderChat(ctx) {
   $('#chBack').onclick = leave;
   const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   on('#chSend', () => sendAnswer(ctx));
-  on('#chNext', () => { addTopic(ctx); renderChat(ctx); });
+  on('#chNext', () => { if (ctx.next) return ctx.next(); addTopic(ctx); renderChat(ctx); });
   on('#chSum', () => summarize(ctx));
   on('#chEnd', leave);
   on('#chMore', () => { st.m.done = false; st.m.max = st.turns + 3; ctx.save(); renderChat(ctx); });
@@ -1268,7 +1367,7 @@ async function summarize(ctx) {
   try {
     const s = await aiSummarize(ctx, chat[t].q);
     pushMsg(ctx, s);
-    const from = ctx.kind === 'es' ? `${ctx.company.name}・${clip(ctx.q.title, 20)}` : '自己分析';
+    const from = ctx.kind === 'es' ? `${ctx.company.name}・${clip(ctx.q.title, 20)}` : ctx.kind === 'bank' ? `面接質問・${ctx.item.cat}` : '自己分析';
     const have = new Set(state.profile.insights.map(x => x.text));
     s.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push({ ...x, from, at: Date.now() }));
     saveProfile();
