@@ -122,6 +122,19 @@
     border-radius:999px;padding:13px 20px;box-shadow:var(--shadow);font-size:.95rem;z-index:5;}
   dialog{border:none;border-radius:16px;background:var(--card);color:var(--ink);padding:20px;width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 48px);margin:auto;}
   dialog::backdrop{background:rgba(10,12,20,.5);}
+  .imgbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;background:var(--card);}
+  .imgbar p{flex:1;min-width:180px;font-size:.82rem;color:var(--sub);}
+  .drop-over{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 22%,transparent);
+    font-family:var(--f-head);font-size:1.2rem;font-weight:700;color:var(--ink);pointer-events:none;}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+  .thumbs img{height:64px;max-width:100%;border-radius:6px;border:1px solid var(--line);object-fit:cover;}
+  .imp-q{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;background:var(--bg);}
+  .imp-q .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .imp-q .top input.t:not([type=number]){flex:1 1 220px;min-width:0;font-weight:700;}
+  .imp-q .top input[type=checkbox]{width:18px;height:18px;flex:none;}
+  .imp-q textarea.t{min-height:90px;font-size:.88rem;}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   dialog h2{font-family:var(--f-head);font-size:1.05rem;margin-bottom:6px;}
   .dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;align-items:center;}
   .dlg-actions .sp{flex:1;}
@@ -131,7 +144,7 @@
     padding:8px 16px;border-radius:999px;font-size:.85rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20;max-width:calc(100vw - 32px);}
   .toast.show{opacity:1;}
   @media (max-width:560px){ .qhead{flex-wrap:wrap;} .qhead .qt-in{flex:1 1 100%;} .qhead .lim{width:110px;} .qhead .q-del{margin-left:auto;} }
-  @media (prefers-reduced-motion:reduce){ .toast{transition:none;} }
+  @media (prefers-reduced-motion:reduce){ .toast{transition:none;} .spin{animation-duration:3s;} }
 </style>
 </head>
 <body>
@@ -187,6 +200,41 @@
   <div class="dlg-actions"><button class="btn primary" type="button" id="btnSettingsClose">閉じる</button></div>
 </dialog>
 
+<input type="file" id="fileImg" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+<div class="drop-over" id="dropOver" hidden>画像をドロップして読み取る</div>
+
+<dialog id="dlgReading">
+  <h2>画像を読み取っています</h2>
+  <div class="thumbs" id="readThumbs"></div>
+  <p class="muted" id="readStatus"><span class="spin"></span>ESの内容を読み取り中です。30秒〜1分ほどかかることがあります。</p>
+  <div class="dlg-actions"><button class="btn" type="button" id="readCancel">中止</button></div>
+</dialog>
+
+<dialog id="dlgImport">
+  <form id="formImport">
+    <h2>読み取り結果を確認</h2>
+    <p class="muted">読み取った内容を直してから保存できます。チェックを外した設問は追加されません。</p>
+    <label class="f" for="impTarget">追加先</label>
+    <select class="t" id="impTarget"></select>
+    <div id="impNew">
+      <div class="row">
+        <div><label class="f" for="impName">企業名</label><input class="t" id="impName" placeholder="読み取れなかったときは入力してください"></div>
+        <div><label class="f" for="impIndustry">業界・職種</label><input class="t" id="impIndustry"></div>
+      </div>
+      <div class="row">
+        <div><label class="f" for="impDeadline">締切</label><input class="t" id="impDeadline" type="date"></div>
+        <div></div>
+      </div>
+    </div>
+    <div id="impQs"></div>
+    <p class="err" id="impErr" hidden></p>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="impCancel">キャンセル</button>
+      <button class="btn primary" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlgPractice">
   <h2 id="pTitle">面接練習</h2>
   <div class="muted" id="pFrom"></div>
@@ -224,7 +272,7 @@ function askConfirm(msg, okLabel) {
 
 /* ================= 保存（claude.aiでは本人だけのDB、それ以外はこの端末） ================= */
 const LOCAL_KEY = 'es-deepdive-v1';
-const caps = { db: null, col: null, sample: null, downloads: null };
+const caps = { db: null, col: null, sample: null, downloads: null, images: null };
 let state = { companies: [] };
 let ready = false;
 const saveTimers = {};
@@ -262,7 +310,11 @@ async function initStore() {
   const hasClaude = typeof window.claude === 'object' && window.claude && typeof window.claude.use === 'function';
   if (!hasClaude) { state = loadLocal(); state.companies.forEach(normalize); ready = true; render(); registerSW(); return; }
   // claude.ai の中：AIはあなたのプランで、データはあなた専用の保存場所へ
-  window.claude.use('sample').then(s => { caps.sample = s; if (ready) render(); });
+  window.claude.use('sample').then(async s => {
+    caps.sample = s;
+    if (s) { try { const l = await s.limits(); caps.images = l.images || null; } catch (e) { caps.images = null; } }
+    if (ready) render();
+  });
   window.claude.use('downloads').then(d => { caps.downloads = d; });
   const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
   const id = user ? await user.id().catch(() => null) : null;
@@ -581,12 +633,14 @@ function homeView() {
   }).join('');
   return `<header class="top"><h1>ES深掘りノート</h1>
       <button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
+    ${imgBar('ESのスクショや写真をここにドロップ・貼り付けすると、企業名・設問・回答を読み取って登録します。')}
     ${state.companies.length ? `<input class="search" id="search" placeholder="企業名・業界・選考状況で検索" value="${esc(filter)}" aria-label="検索">` : ''}
     ${items || (state.companies.length ? '<div class="empty">該当する企業がありません</div>' :
       `<div class="empty">企業ごとにESを登録すると、<br>面接で聞かれそうな<b>深掘り質問</b>が自動で表示されます。<br>質問への答えをメモすると、<b>その答えへの深掘り</b>も続けて出てきます。<br><br>右下の「＋ 企業を追加」から始めましょう。</div>`)}
     <button class="btn primary fab" id="btnAdd">＋ 企業を追加</button>`;
 }
 function bindHome() {
+  bindImgBar();
   $('#btnAdd').onclick = () => openCompanyDialog(null);
   $('#btnSettings').onclick = openSettings;
   const s = $('#search');
@@ -613,6 +667,7 @@ function companyView(c) {
       ${c.url ? `<div class="muted"><a href="${esc(c.url)}" target="_blank" rel="noopener">マイページを開く ↗</a></div>` : ''}
       ${c.memo ? `<div class="muted" style="white-space:pre-wrap;margin-top:6px">${esc(c.memo)}</div>` : ''}
     </div>
+    ${imgBar('この企業のESの画像をドロップ・貼り付けすると、設問と回答を読み取って追加します。')}
     ${qs || '<div class="empty">設問を追加して、ESの回答を書きましょう。</div>'}
     <button class="btn primary fab" id="btnAddQ">＋ 設問を追加</button>`;
 }
@@ -681,6 +736,7 @@ function openKeys(container) { return [...container.querySelectorAll('details[op
 function restoreOpen(container, keys) { keys.forEach(k => { const d = container.querySelector(`details[data-k="${k}"]`); if (d) d.open = true; }); }
 
 function bindCompany(c) {
+  bindImgBar();
   $('#btnBack').onclick = () => { flushAll(); route = { view: 'home', id: null }; render(); };
   $('#btnEditCo').onclick = () => openCompanyDialog(c);
   $('#btnPractice').onclick = () => startPractice(c);
@@ -804,8 +860,8 @@ $('#btnDeleteCompany').onclick = async () => {
 /* ================= 設定・バックアップ ================= */
 function openSettings() {
   $('#aiStatus').textContent = caps.sample
-    ? 'AIの深掘りは、あなたの Claude のプランの範囲で動きます（APIキーや追加料金は不要です）。'
-    : 'AIの深掘りは、claude.ai でこのページを開いたときに使えます。ここではアプリ内の自動深掘りだけが動きます。';
+    ? 'AIの深掘りと画像の読み取りは、あなたの Claude のプランの範囲で動きます（APIキーや追加料金は不要です）。'
+    : 'AIの深掘りと画像の読み取りは、claude.ai でこのページを開いたときに使えます。ここではアプリ内の自動深掘りだけが動きます。';
   $('#storeStatus').textContent = caps.col
     ? 'データは claude.ai 上の、あなただけが読める保存場所に保存されています。'
     : 'データはこの端末のブラウザに保存されています。機種変更の前には書き出してください。';
@@ -885,6 +941,180 @@ $('#pDeeper').onclick = () => {
 $('#pNext').onclick = () => { practice.i = (practice.i + 1) % practice.pool.length; practice.cur = practice.pool[practice.i]; showPractice(); };
 $('#pClose').onclick = () => $('#dlgPractice').close();
 $('#dlgPractice').addEventListener('close', () => { flushAll(); if (route.view === 'company') render(); });
+
+/* ================= 画像から読み取り ================= */
+function imgBar(text) {
+  if (!caps.images) return '';
+  return `<div class="imgbar"><p>📷 ${text}</p><button class="btn small" type="button" id="btnImg">画像を選ぶ</button></div>`;
+}
+function bindImgBar() { const b = $('#btnImg'); if (b) b.onclick = () => $('#fileImg').click(); }
+$('#fileImg').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) importImages(fs); };
+// ドラッグ＆ドロップと貼り付け
+let dragDepth = 0;
+const isFileDrag = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e => { if (!caps.images || !isFileDrag(e)) return; dragDepth++; $('#dropOver').hidden = false; });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('#dropOver').hidden = true; } });
+window.addEventListener('dragover', e => { if (caps.images && isFileDrag(e)) e.preventDefault(); });
+window.addEventListener('drop', e => {
+  if (!caps.images || !isFileDrag(e)) return;
+  e.preventDefault(); dragDepth = 0; $('#dropOver').hidden = true;
+  const fs = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+  if (fs.length) importImages(fs); else toast('画像ファイルをドロップしてください');
+});
+document.addEventListener('paste', e => {
+  if (!caps.images || document.querySelector('dialog[open]')) return;
+  const fs = [...(e.clipboardData ? e.clipboardData.files : [])].filter(f => f.type.startsWith('image/'));
+  if (!fs.length) return;
+  e.preventDefault(); importImages(fs);
+});
+
+// 縦に長いスクショは、読み取りやすいように縦に分割して送る（送る前に約120万画素に縮小されるため）
+async function splitImage(file, budget) {
+  let bmp;
+  try { bmp = await createImageBitmap(file); } catch (e) { return [file]; }
+  const w = bmp.width, h = bmp.height;
+  const target = Math.round(w * 1.25), overlap = Math.round(w * 0.06);
+  let n = h > w * 1.6 ? Math.ceil((h - overlap) / (target - overlap)) : 1;
+  n = Math.max(1, Math.min(n, budget));
+  if (n === 1) { bmp.close && bmp.close(); return [file]; }
+  const sliceH = Math.ceil((h + overlap * (n - 1)) / n);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const y = Math.min(h - sliceH, i * (sliceH - overlap));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = sliceH;
+    cv.getContext('2d').drawImage(bmp, 0, y, w, sliceH, 0, 0, w, sliceH);
+    out.push(await new Promise(r => cv.toBlob(r, 'image/png')));
+  }
+  bmp.close && bmp.close();
+  return out.filter(Boolean);
+}
+const READ_PROMPT = `添付画像は、就職活動のES（エントリーシート）に関する画像です。企業のマイページの入力画面のスクリーンショット、Wordやメモアプリの下書き、紙のESの写真、設問一覧などのどれかです。
+画像が複数あるときは、1つの縦長の画面を上から順に分割したものです。境目は少し重なっているので、重複した行は1回だけ数えてください。
+
+画像から次を読み取り、JSONだけを出力してください（前後に文章を付けない）：
+{"company":{"name":"企業名（わからなければ空文字）","industry":"業界・職種（わからなければ空文字）","deadline":"締切をYYYY-MM-DDで（わからなければ空文字）"},
+ "questions":[{"title":"設問文","limit":文字数制限の数値（「400字以内」なら400。なければnull）,"answer":"回答本文"}]}
+
+ルール：
+- 設問文と回答本文は、画像に書かれている文字をそのまま書き起こす。要約・言い換え・誤字の修正はしない
+- 回答が書かれていない設問は answer を空文字にする
+- 文字数カウンター、ボタン、メニューなどの画面の部品は無視する
+- 段落の区切りは改行（\n）で表す
+- ESの設問が1つも見つからないときは "questions" を空配列にする`;
+
+let readAbort = null;
+async function importImages(files) {
+  if (!caps.sample || !caps.images) { toast('画像の読み取りは、claude.ai で開いたときに使えます'); return; }
+  const lim = caps.images;
+  files = files.filter(f => (lim.mediaTypes || []).includes(f.type));
+  if (!files.length) { toast('PNG・JPEG・WebP・GIF の画像を使ってください'); return; }
+  const tooBig = files.filter(f => f.size > lim.maxInputBytes);
+  if (tooBig.length) { toast('大きすぎる画像があります。小さくしてからお試しください'); return; }
+  const thumbs = $('#readThumbs'); thumbs.innerHTML = '';
+  const urls = files.map(f => URL.createObjectURL(f));
+  urls.forEach(u => { const im = document.createElement('img'); im.src = u; im.alt = '読み取る画像'; thumbs.append(im); });
+  $('#readStatus').innerHTML = '<span class="spin"></span>ESの内容を読み取り中です。30秒〜1分ほどかかることがあります。';
+  $('#dlgReading').showModal();
+  readAbort = new AbortController();
+  try {
+    // 分割した画像を、1回に送れる枚数ずつに分けて読み取る
+    const per = Math.max(1, lim.maxCount || 1);
+    const slices = [];
+    for (const f of files) slices.push(await splitImage(f, Math.max(1, Math.floor(per / files.length)) || 1));
+    const batches = [];
+    let cur = [];
+    slices.forEach(group => {
+      if (cur.length && cur.length + group.length > per) { batches.push(cur); cur = []; }
+      // 1枚の画像の分割は、なるべく同じ回に送る
+      group.forEach(b => { if (cur.length >= per) { batches.push(cur); cur = []; } cur.push(b); });
+    });
+    if (cur.length) batches.push(cur);
+    const result = { company: { name: '', industry: '', deadline: '' }, questions: [] };
+    for (let i = 0; i < batches.length; i++) {
+      if (batches.length > 1) $('#readStatus').innerHTML = `<span class="spin"></span>読み取り中（${i + 1} / ${batches.length}）…`;
+      const r = await caps.sample.json(READ_PROMPT, { images: batches[i], signal: readAbort.signal, modelTier: 'default' });
+      mergeRead(result, r);
+    }
+    $('#dlgReading').close();
+    if (!result.questions.length && !result.company.name) { toast('ESの内容を読み取れませんでした。文字がはっきり写った画像でお試しください'); return; }
+    openImportReview(result);
+  } catch (e) {
+    $('#dlgReading').close();
+    if (e && e.code === 'cancelled') return;
+    toast(readErrorMessage(e));
+  } finally { urls.forEach(u => URL.revokeObjectURL(u)); readAbort = null; }
+}
+$('#readCancel').onclick = () => { if (readAbort) readAbort.abort(); $('#dlgReading').close(); };
+function readErrorMessage(e) {
+  const c = e && e.code;
+  if (c === 'image_rejected') return '読み込めない画像がありました。PNGかJPEGで、20MB以下の画像を使ってください';
+  if (c === 'images_unavailable') return 'この画面では画像を送れません。claude.ai をブラウザで開いてお試しください';
+  if (c === 'invalid_json' || c === 'empty_completion') return '読み取り結果をうまく受け取れませんでした。もう一度お試しください';
+  return aiErrorMessage(e).replace('AIの深掘り', '画像の読み取り');
+}
+const normTitle = s => String(s || '').replace(/[\s　。．.、,？?！!（）()「」]/g, '');
+function mergeRead(acc, r) {
+  if (!r || typeof r !== 'object') return;
+  const co = r.company || {};
+  ['name', 'industry', 'deadline'].forEach(k => { if (!acc.company[k] && typeof co[k] === 'string') acc.company[k] = co[k].trim(); });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(acc.company.deadline)) acc.company.deadline = '';
+  (Array.isArray(r.questions) ? r.questions : []).forEach(q => {
+    if (!q || typeof q.title !== 'string' || !q.title.trim()) return;
+    const item = { title: q.title.trim(), limit: Number(q.limit) > 0 ? String(Math.round(Number(q.limit))) : '', answer: typeof q.answer === 'string' ? q.answer.trim() : '' };
+    const same = acc.questions.find(x => normTitle(x.title) === normTitle(item.title));
+    if (same) { if (item.answer.length > same.answer.length) same.answer = item.answer; if (!same.limit) same.limit = item.limit; }
+    else acc.questions.push(item);
+  });
+}
+let importing = null;
+function openImportReview(result) {
+  importing = result;
+  const curCo = route.view === 'company' ? state.companies.find(x => x.id === route.id) : null;
+  const guess = curCo || state.companies.find(x => result.company.name && normTitle(x.name) === normTitle(result.company.name));
+  $('#impTarget').innerHTML = `<option value="">新しい企業として追加</option>` +
+    state.companies.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  $('#impTarget').value = guess ? guess.id : '';
+  $('#impName').value = result.company.name; $('#impIndustry').value = result.company.industry; $('#impDeadline').value = result.company.deadline;
+  $('#impNew').hidden = !!guess;
+  $('#impErr').hidden = true;
+  $('#impQs').innerHTML = result.questions.length ? result.questions.map((q, i) => `
+    <div class="imp-q" data-i="${i}">
+      <div class="top"><input type="checkbox" id="impOn${i}" checked aria-label="この設問を追加する">
+        <input class="t" id="impT${i}" value="${esc(q.title)}" aria-label="設問">
+        <input class="t" id="impL${i}" type="number" min="0" style="width:90px;flex:none" value="${esc(q.limit)}" placeholder="字数" aria-label="文字数制限"></div>
+      <textarea class="t" id="impA${i}" style="margin-top:8px" placeholder="（回答なし）" aria-label="回答">${esc(q.answer)}</textarea>
+    </div>`).join('') : '<p class="hint">設問は見つかりませんでした。企業情報だけ登録できます。</p>';
+  $('#dlgImport').showModal();
+}
+$('#impTarget').onchange = () => { $('#impNew').hidden = !!$('#impTarget').value; };
+$('#impCancel').onclick = () => $('#dlgImport').close();
+$('#formImport').addEventListener('submit', e => {
+  e.preventDefault();
+  const picked = importing.questions.map((_, i) => ({
+    on: $('#impOn' + i).checked, title: $('#impT' + i).value.trim(), limit: $('#impL' + i).value, answer: $('#impA' + i).value,
+  })).filter(x => x.on && x.title);
+  let c = state.companies.find(x => x.id === $('#impTarget').value);
+  if (!c) {
+    const name = $('#impName').value.trim();
+    if (!name) { $('#impErr').textContent = '企業名を入力してください'; $('#impErr').hidden = false; $('#impName').focus(); return; }
+    c = normalize({ id: uid(), name, industry: $('#impIndustry').value.trim(), status: 'ES作成中', deadline: $('#impDeadline').value, url: '', memo: '', questions: [] });
+    state.companies.push(c);
+  }
+  let added = 0, filled = 0;
+  picked.forEach(p => {
+    // 同じ設問があれば、空いている回答だけ埋める
+    const same = c.questions.find(q => normTitle(q.title) === normTitle(p.title));
+    if (same) {
+      if (!(same.answer || '').trim() && p.answer.trim()) { same.answer = p.answer; filled++; }
+      if (!same.limit && p.limit) same.limit = p.limit;
+      return;
+    }
+    c.questions.push({ id: uid(), title: p.title, limit: p.limit, answer: p.answer, notes: {}, ai: {} }); added++;
+  });
+  saveCompany(c, true); $('#dlgImport').close();
+  route = { view: 'company', id: c.id }; render(); window.scrollTo(0, 0);
+  toast(added || filled ? `${c.name}に設問を${added}件追加しました${filled ? `（${filled}件の回答を補完）` : ''}` : `${c.name}：新しい設問はありませんでした`);
+});
 
 render();
 initStore();
