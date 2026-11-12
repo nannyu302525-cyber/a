@@ -148,6 +148,15 @@
   .ans .acts{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:8px;}
   .ans .acts .n{margin-right:auto;font-size:.76rem;color:var(--sub);font-variant-numeric:tabular-nums;}
   .ans textarea.t{min-height:180px;}
+  .plan{background:var(--soft);border-radius:16px;padding:14px 16px;}
+  .plan-h{font-family:var(--f-head);font-weight:700;margin-bottom:6px;}
+  .plan ol{padding-left:1.3em;margin-bottom:8px;}
+  .plan li{margin-bottom:8px;}
+  .plan li .quote{display:block;font-size:.82rem;color:var(--sub);}
+  .plan li .why{display:block;font-size:.85rem;}
+  .sum.mini{border-width:1px;border-color:var(--line);padding:12px 14px;}
+  .sum.mini .lbl{margin-top:0;color:var(--ink);font-size:.85rem;}
+  .goal .chk.cur{border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:700;}
   .end{display:flex;flex-direction:column;gap:8px;padding-top:6px;}
   .end .big{padding:12px 16px;font-size:1rem;align-items:center;}
   .msgs{display:flex;flex-direction:column;gap:10px;flex:1;padding-bottom:14px;}
@@ -691,9 +700,9 @@ function ctxText(ctx) {
 <es_answer>${q.answer || '（まだ書いていない）'}</es_answer>
 <self_analysis_notes>\n${insightText(25)}\n</self_analysis_notes>`;
 }
-function transcriptText(chat) {
-  return chat.slice(-24).map(m => {
-    if (m.role === 'ai') return `アドバイザー：${m.reply ? m.reply + ' ' : ''}${m.q}`;
+function transcriptText(chat, max) {
+  return chat.slice(-(max || 24)).map(m => {
+    if (m.role === 'ai') return `面接官：${m.reply ? m.reply + ' ' : ''}${m.q || ''}`;
     if (m.role === 'me') return `本人：${m.text}`;
     if (m.role === 'sum') return '（ここまでの内容を回答にまとめた）';
     return '';
@@ -727,7 +736,8 @@ ${transcriptText(topicSlice(ctx.thread.chat))}
 - reply：1〜3文。答えの要点を、面接やESで使える言葉に言い換えて整理する（例：「つまり〜ということですね」）。良い材料は具体的に伝える。説教っぽくしない。done が true のときは、ここまでの話を一言でまとめて締める
 - question：done が false のときだけ。まだ出ていない材料のうち一番大事なものを引き出す質問を1つ。最後の答えの具体的な言葉を拾う。done が true なら空文字
 - intent：その質問で引き出したい材料（10〜20字）
-話し言葉で、やさしく、短く。会話に出ていないことを事実として扱わない。
+${SHARP_RULES}
+reply はほめるだけにせず、弱いところがあれば一言で正直に伝える。話し言葉で、短く。会話に出ていないことを事実として扱わない。
 
 出力は次の形のJSONだけにしてください（前後に文章を付けない）：
 {"covered":["結論"],"done":false,"reply":"…","question":"…","intent":"…"}`;
@@ -739,6 +749,128 @@ ${transcriptText(topicSlice(ctx.thread.chat))}
     covered: (Array.isArray(r.covered) ? r.covered : []).filter(x => GOAL_NAMES.includes(x)), done };
 }
 const INSIGHT_CATS = ['強み', '価値観', 'エピソード', '弱み', '志望軸'];
+/* ---- ESの深掘り：先に「面接官が突っ込む論点」を洗い出し、1つずつ詰める ---- */
+// 就活サイトの解説をもとにした、深掘りで面接官が見ている評価軸
+const AXES = `- 動機の根源：なぜ始めたか・なぜ続けられたか（自分の意思か、流されたのか）
+- 課題設定：何を課題と捉えたか、その原因をどこまで分析したか
+- 意思決定：なぜその方法を選んだか、ほかの選択肢と比べてどう判断したか
+- 本人の貢献：チームの成果のうち、本人だけがやったことは何か。本人がいなければどうなっていたか
+- 独自の工夫：同じような経験をした人と比べて、本人ならではの工夫は何か
+- 困難への向き合い方：一番きつかった場面で、正直どう感じ、どう動いたか
+- 周囲への働きかけ：反対や温度差にどう対応したか、相手はどう変わったか
+- 成果の客観性：数字の根拠、何と比べての成果か、周囲からの評価、成果は本当にその行動のおかげか
+- 振り返り：うまくいかなかったこと、今やり直すなら何を変えるか
+- 再現性：学びをほかの場面で使った経験、入社後のどんな場面で活きるか`;
+const SHARP_RULES = `芯を食った質問の条件：
+- 本人の文章や答えの中の具体的な言葉を「」で引用して、その一点だけを聞く
+- 「工夫した」「意識した」「話し合った」「声をかけた」「大切さを学んだ」のような中身の見えない言葉があれば、その中身（いつ・誰に・何を・なぜ）を聞く
+- 判断の分かれ目を聞く：なぜそれを選び、ほかの案はなぜ捨てたのか
+- 「チームで」ではなく「あなたは」何をしたのかを聞く
+- 因果を疑う：その結果は本当にその行動のおかげか、ほかの要因はないか
+- すでに書いてある・答えたことを、そのまま聞き直さない
+- 「なぜ始めたのですか」「何を学びましたか」のような、誰にでも聞ける質問のままにしない
+- 1回に聞くのは1点だけ。前置きなしで、40〜80字`;
+async function aiPlan(ctx, avoid) {
+  const prompt = `あなたは、新卒採用で何百人も面接してきた現場の面接官です。次のESを読み、面接で必ず突っ込む論点を5つ選んでください。
+
+${ctxText(ctx)}
+
+評価軸：
+${AXES}
+（設問が志望動機やキャリアについてのときは、評価軸を「原体験」「ほかの業界・他社との比較」「企業理解の深さ」「入社後にやりたいことの具体性」「就活の軸との一貫性」に読み替える）
+
+論点の選び方：
+- ESの具体的な記述に基づいて選ぶ。それぞれ、根拠になったESの一節を引用する
+- 「書かれていない」「言葉が抽象的」「因果が飛んでいる」「本人の貢献が見えない」「数字の根拠がない」「原因の分析が浅い」「選んだ理由がない」ところを優先する
+- ESですでに十分に説明されていることは選ばない
+- 5つは別々の評価軸から選び、面接で聞く自然な順番（動機 → 課題 → 行動 → 結果 → 再現性）に並べる
+${avoid && avoid.length ? `- 次の論点はすでに聞いたので、別の角度から選ぶ：${avoid.join('、')}` : ''}
+
+${SHARP_RULES}
+
+出力は次の形のJSONだけにしてください（前後に文章を付けない）：
+{"points":[{"title":"論点の名前（14字以内）","quote":"根拠になったESの一節（25字以内）","why":"面接官がそこを気にする理由（1文）","question":"最初に聞く質問","press":"答えが曖昧だったときに、次に突く角度（1文）"}]}`;
+  const r = await caps.sample.json(prompt, { modelTier: 'default' });
+  const pts = (r && Array.isArray(r.points) ? r.points : []).filter(x => x && typeof x.question === 'string' && x.question.trim()).slice(0, 6)
+    .map(x => ({ title: String(x.title || '論点').trim(), quote: String(x.quote || '').trim(), why: String(x.why || '').trim(), question: x.question.trim(), press: String(x.press || '').trim() }));
+  if (pts.length < 2) throw { code: 'invalid_json' };
+  return pts;
+}
+// 1つの論点の中での追加の質問（納得できる答えが出たら終わり）
+async function aiPress(ctx, point, left) {
+  const prompt = `あなたは、新卒採用で何百人も面接してきた現場の面接官です。同時に、就活生が自分の経験を言葉にするのを手伝う立場でもあります。いま、ESの次の論点を確かめています。
+
+${ctxText(ctx)}
+
+<point>
+論点：${point.title}
+気になったESの一節：「${point.quote}」
+気にしている理由：${point.why}
+答えが曖昧なときに突く角度：${point.press}
+</point>
+
+<conversation>
+${transcriptText(topicSlice(ctx.thread.chat))}
+</conversation>
+
+この論点で質問できるのは、あと最大${left}回です。最後の本人の答えを読んで、次を返してください。
+- resolved：面接官として「この論点は納得できた」と言えるなら true。目安は、具体的な場面・判断の理由・本人自身の行動のうち、この論点に必要なものが本人の言葉で語られたこと。きれいな言い回しである必要はない。残り回数が0なら true
+- reply：1〜2文。答えの中で面接で使える材料を、言い換えて返す（例：「つまり〜ということですね」）。まだ弱いところがあれば、どこが弱いかを一言で正直に伝える。ほめるだけにしない
+- question：resolved が false のときだけ。答えのいちばん弱い一点を突く質問。resolved が true なら空文字
+- intent：その質問で確かめたいこと（10〜20字）
+
+${SHARP_RULES}
+話し言葉で、短く。会話やESに出ていないことを事実として扱わない。
+
+出力は次の形のJSONだけにしてください（前後に文章を付けない）：
+{"resolved":false,"reply":"…","question":"…","intent":"…"}`;
+  const r = await caps.sample.json(prompt, { modelTier: 'quick' });
+  if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
+  const q = typeof r.question === 'string' ? r.question.trim() : '';
+  const done = r.resolved === true || !q;
+  return { reply: String(r.reply || '').trim(), q: done ? '' : q, intent: done ? '' : String(r.intent || '').trim(), done };
+}
+// 全部の論点が終わったら、論点ごとの答え・設問への1分回答・ESの改善案をまとめる
+async function aiSummarizePlan(ctx, plan) {
+  const q = ctx.q, lim = Number(q.limit) || 0;
+  const talked = plan.points.map((p, i) => ({ p, i })).filter(x => x.p.answered);
+  const prompt = `あなたは、就活生の自己分析とES作りを手伝うキャリアアドバイザーです。面接官役がESの論点を1つずつ深掘りした会話をもとに、本人の答えを整理してください。
+
+${ctxText(ctx)}
+
+<points>
+${talked.map(x => `論点${x.i + 1}：${x.p.title}／質問：${x.p.question}`).join('\n')}
+</points>
+
+<conversation>
+${transcriptText(ctx.thread.chat.slice(plan.start || 0), 80)}
+</conversation>
+
+ルール：
+- 会話とESに出てきた事実だけを使う。誇張したり、話していないエピソードや数字を作ったりしない
+- 本人の言葉づかいや温度感はできるだけ残す
+
+出力は次の形のJSONだけにしてください（前後に文章を付けない）：
+{"answers":[{"n":論点の番号,"answer":"その論点の質問に面接で答えるときの回答。話し言葉で、結論から。150〜220字"}],
+ "overall":"設問「${q.title}」を面接で聞かれたときの答え。深掘りで出てきた材料を入れて、話し言葉で、結論から。250〜300字（1分ほど）",
+ "es":"ESの設問への回答の改善版。${lim ? `${lim}字以内で、${Math.round(lim * 0.9)}字以上` : '元の回答と同じくらいの長さ'}。元のESをもとに、深掘りで出てきた具体的な場面・判断の理由・本人の行動を加えて、面接官が突っ込みたくなる穴をふさぐ。です・ます調の書き言葉。結論から書く",
+ "points":["良くなった点や、まだ詰めると良い点（それぞれ1文、2〜3個）"],
+ "insights":[{"cat":"強み|価値観|エピソード|弱み|志望軸 のどれか","text":"自己分析として残す内容（1文）"}]}
+answers は、本人が答えた論点（${talked.map(x => x.i + 1).join('・')}）についてだけ作る。insights は2〜5個。`;
+  const r = await caps.sample.json(prompt, { modelTier: 'default' });
+  if (!r || typeof r.overall !== 'string' || !r.overall.trim()) throw { code: 'invalid_json' };
+  const now = Date.now();
+  const minis = (Array.isArray(r.answers) ? r.answers : []).map(a => {
+    const p = plan.points[Number(a && a.n) - 1];
+    return p && p.answered && typeof a.answer === 'string' && a.answer.trim() ? { role: 'sum', mini: true, topic: p.question, answer: a.answer.trim(), at: now } : null;
+  }).filter(Boolean);
+  const main = { role: 'sum', topic: q.title, answer: r.overall.trim(), es: typeof r.es === 'string' ? r.es.trim() : '', limit: lim,
+    points: (Array.isArray(r.points) ? r.points : []).filter(x => typeof x === 'string').slice(0, 4),
+    insights: (Array.isArray(r.insights) ? r.insights : []).filter(x => x && typeof x.text === 'string' && x.text.trim())
+      .map(x => ({ cat: INSIGHT_CATS.includes(x.cat) ? x.cat : 'エピソード', text: x.text.trim() })).slice(0, 6), at: now };
+  return [...minis, main];
+}
+
 async function aiSummarize(ctx, topicQ) {
   const es = ctx.kind === 'es' && (ctx.q.title || '').trim();
   const lim = es ? Number(ctx.q.limit) || 0 : 0;
@@ -910,6 +1042,8 @@ function bindHome() {
 
 /* ---- まとめた回答（会話の中と、設問・自己分析の画面で共通） ---- */
 function sumHtml(m, i, ctxKind) {
+  if (m.mini) return `<div class="sum mini"><div class="lbl">${esc(m.topic)}</div><div class="out">${esc(m.answer)}</div>
+    <div class="acts"><button class="btn small" type="button" data-act="copy-answer" data-i="${i}">コピー</button></div></div>`;
   const n = countChars(m.es), over = m.limit && n > m.limit;
   return `<div class="sum" data-i="${i}">
     <div class="sum-h">📝 回答にまとめました</div>
@@ -1399,8 +1533,11 @@ function currentTopic(chat) {
 function msgHtml(m, i, ctx) {
   if (m.role === 'me') return `<div class="msg me">${esc(m.text)}</div>`;
   if (m.role === 'note') return `<div class="note">${esc(m.text)}</div>`;
+  if (m.role === 'plan') return `<div class="plan"><div class="plan-h">🎯 面接官が突っ込みそうな論点（${m.points.length}つ）</div>
+    <ol>${m.points.map(p => `<li><b>${esc(p.title)}</b>${p.quote ? `<span class="quote">「${esc(p.quote)}」</span>` : ''}<span class="why">${esc(p.why)}</span></li>`).join('')}</ol>
+    <p class="muted">この順番で1つずつ聞きます。全部終わったら、回答とESの改善案にまとめます。</p></div>`;
   if (m.role === 'sum') return sumHtml(m, i, ctx.kind);
-  return `<div class="msg ai">${m.topic ? '<div class="tlabel">質問</div>' : ''}${m.reply ? `<p class="reply">${esc(m.reply)}</p>` : ''}
+  return `<div class="msg ai">${m.topic ? `<div class="tlabel">${m.planIdx != null ? `論点${m.planIdx + 1}：${esc(m.title || '')}` : '質問'}</div>` : ''}${m.reply ? `<p class="reply">${esc(m.reply)}</p>` : ''}
     ${m.q ? `<p class="ask">${esc(m.q)}</p>` : ''}${m.intent ? `<p class="intent">ねらい：${esc(m.intent)}</p>` : ''}</div>`;
 }
 // 話題の進み具合（ゴールまでの残り）
@@ -1411,30 +1548,105 @@ function topicState(chat) {
   return { t, m, turns: rest.filter(x => x.role === 'me').length, max: m.max || MAX_TURNS, got: m.got || [],
     summed: rest.some(x => x.role === 'sum') };
 }
-function goalHtml(st) {
+const planOf = ctx => ctx.kind === 'es' ? ctx.q.plan || null : null;
+const PLAN_TURNS = 3; // 1つの論点で答える回数の上限
+function goalHtml(st, plan) {
   if (!st) return '';
   const left = Math.max(0, st.max - st.turns);
+  if (plan && st.m.planIdx != null) {
+    return `<div class="goal" aria-label="論点の進み具合">${plan.points.map((p, i) => {
+      const cur = !plan.finished && i === plan.idx;
+      return `<span class="chk ${i < plan.idx || plan.finished ? 'on' : ''} ${cur ? 'cur' : ''}">${i < plan.idx || plan.finished ? '✓' : i + 1} ${esc(p.title)}</span>`;
+    }).join('')}<span class="goal-left">${plan.finished ? 'ゴール！' : `この論点 あと最大${left}問`}</span></div>`;
+  }
   return `<div class="goal" aria-label="この話題のゴール">${GOAL_NAMES.map(g => `<span class="chk ${st.got.includes(g) ? 'on' : ''}">${st.got.includes(g) ? '✓' : '・'} ${g}</span>`).join('')}
     <span class="goal-left">${st.m.done ? (st.summed || st.got.length === GOAL_NAMES.length ? 'ゴール！' : 'ここまで') : `あと最大${left}問`}</span></div>`;
 }
+const esKey = q => hash((q.title || '') + '\n' + (q.answer || ''));
+// ESの会話を開いたとき：論点がまだ無い（またはESが書き換わった）なら、ESを読んで論点を作る
+async function ensurePlan(ctx, avoid) {
+  const q = ctx.q;
+  if (!caps.sample || chatUi.aiOff || !(q.answer || '').trim()) return false;
+  if (q.plan && q.plan.key === esKey(q) && !avoid) return true;
+  chatUi.busy = 'ESを読んで、面接官が突っ込みそうな論点を考えています…（30秒ほど）'; renderChat(ctx);
+  let pts = null;
+  try { pts = await aiPlan(ctx, avoid); }
+  catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) chatUi.aiOff = true; toast(aiErrorMessage(e).replace('AIの深掘り', '論点づくり')); }
+  chatUi.busy = '';
+  if (!pts) return false;
+  if (ctx.thread.chat.length) pushMsg(ctx, { role: 'note', text: avoid ? '別の角度から、もう一周します。' : 'ESをもとに、あらためて論点を整理しました。' });
+  q.plan = { key: esKey(q), points: pts, idx: 0, start: ctx.thread.chat.length, finished: false, asked: [...(avoid || []), ...pts.map(p => p.title)] };
+  pushMsg(ctx, { role: 'plan', points: pts.map(p => ({ title: p.title, quote: p.quote, why: p.why })) });
+  pushPlanTopic(ctx);
+  return true;
+}
+function pushPlanTopic(ctx) {
+  const plan = ctx.q.plan, p = plan.points[plan.idx];
+  ctx.thread.asked = [...(ctx.thread.asked || []), p.question];
+  pushMsg(ctx, { role: 'ai', topic: true, planIdx: plan.idx, title: p.title, q: p.question, intent: p.why, max: PLAN_TURNS });
+}
+// 今の論点を終えて、次の論点へ。最後の論点なら、まとめに進む
+function advancePlan(ctx, topic) {
+  const plan = ctx.q.plan;
+  topic.done = true;
+  if (plan.idx + 1 < plan.points.length) { plan.idx++; pushPlanTopic(ctx); renderChat(ctx); return; }
+  plan.idx = plan.points.length; ctx.save();
+  return summarizePlan(ctx);
+}
+async function summarizePlan(ctx) {
+  const plan = ctx.q.plan, chat = ctx.thread.chat;
+  if (chatUi.busy) return;
+  const t = currentTopic(chat); if (t >= 0) chat[t].done = true;
+  plan.finished = true;
+  if (!plan.points.some(p => p.answered)) { pushMsg(ctx, { role: 'note', text: '答えた論点がないので、まとめは作りませんでした。' }); renderChat(ctx); return; }
+  pushMsg(ctx, { role: 'note', text: '論点がひと通り終わりました。回答とESの改善案にまとめます。' });
+  chatUi.busy = '回答にまとめています…（1分ほどかかることがあります）'; renderChat(ctx);
+  try {
+    const msgs = await aiSummarizePlan(ctx, plan);
+    msgs.forEach(m => pushMsg(ctx, m));
+    addInsights(ctx, msgs[msgs.length - 1].insights || []);
+  } catch (e) { plan.summaryFailed = true; toast(aiErrorMessage(e).replace('AIの深掘り', 'まとめ')); }
+  ctx.save(); chatUi.busy = '';
+  if (route.view === 'chat') renderChat(ctx);
+}
+function addInsights(ctx, insights) {
+  const from = ctx.kind === 'es' ? `${ctx.company.name}・${clip(ctx.q.title, 20)}` : ctx.kind === 'bank' ? `面接質問・${ctx.item.cat}` : '自己分析';
+  const have = new Set(state.profile.insights.map(x => x.text));
+  insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push({ ...x, from, at: Date.now() }));
+  saveProfile();
+}
 function renderChat(ctx) {
   const key = route.id + '/' + route.qid;
-  if (chatUi.key !== key) { chatUi = { busy: '', aiOff: false, key }; if (!ctx.thread.chat.length) addTopic(ctx); prepareAiTopics(ctx); }
+  if (chatUi.key !== key) {
+    chatUi = { busy: '', aiOff: false, key };
+    if (ctx.kind === 'es') {
+      // 論点づくりは時間がかかるので、画面を出してから始める。作れなければ、アプリ内の質問で始める
+      setTimeout(async () => {
+        const ok = await ensurePlan(ctx);
+        if (!ok && !ctx.thread.chat.length) addTopic(ctx);
+        if (route.view === 'chat' && chatUi.key === key) renderChat(ctx);
+      }, 0);
+    } else if (!ctx.thread.chat.length) addTopic(ctx);
+  }
   const chat = ctx.thread.chat;
-  const st = topicState(chat);
-  const answered = st && st.turns > 0, done = st && st.m.done;
+  const st = topicState(chat), plan = planOf(ctx);
+  const inPlan = !!(plan && st && st.m.planIdx != null);
+  const answered = st && st.turns > 0, done = st && st.m.done && (!inPlan || plan.finished);
   const busy = chatUi.busy;
-  const composer = done && !busy ? `
+  const anyAnswered = inPlan && plan.points.some(p => p.answered);
+  const composer = !st ? '' : done && !busy ? `
       <div class="end">
-        <p class="muted">${st.summed ? 'この話題はゴールです。回答は上にまとめてあります。' : 'この話題はここまでにしましょう。'}</p>
-        ${caps.sample && !st.summed ? '<button class="big" type="button" id="chSum">📝 回答にまとめる</button>' : ''}
-        <button class="big primary" type="button" id="chNext">${ctx.nextLabel || '次の質問へ'}</button>
-        <button class="big" type="button" id="chEnd">終わる</button>
-        <button class="btn link" type="button" id="chMore">この話題をもう少し続ける</button>
+        <p class="muted">${st.summed ? (inPlan ? 'すべての論点が終わりました。回答とESの改善案は上にまとめてあります。' : 'この話題はゴールです。回答は上にまとめてあります。') : 'ここまでにしましょう。'}</p>
+        ${caps.sample && !st.summed && (!inPlan || anyAnswered) ? '<button class="big" type="button" id="chSum">📝 回答にまとめる</button>' : ''}
+        ${inPlan ? `<button class="big primary" type="button" id="chEnd">終わる</button>
+          ${caps.sample ? '<button class="big" type="button" id="chAgain">別の角度で、もう一周する</button>' : ''}`
+        : `<button class="big primary" type="button" id="chNext">${ctx.nextLabel || '次の質問へ'}</button>
+          <button class="big" type="button" id="chEnd">終わる</button>
+          <button class="btn link" type="button" id="chMore">この話題をもう少し続ける</button>`}
       </div>` : `
       <div class="chips">
-        ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${answered && !busy ? '' : 'disabled'}>📝 ここで回答にまとめる</button>` : ''}
-        <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ ${ctx.kind === 'bank' ? ctx.nextLabel : '別の質問へ'}</button>
+        ${caps.sample ? `<button class="btn small" type="button" id="chSum" ${(inPlan ? anyAnswered || answered : answered) && !busy ? '' : 'disabled'}>📝 ここで回答にまとめる</button>` : ''}
+        <button class="btn small" type="button" id="chNext" ${busy ? 'disabled' : ''}>↪ ${inPlan ? '次の論点へ' : ctx.kind === 'bank' ? ctx.nextLabel : '別の質問へ'}</button>
       </div>
       <div class="send-row">
         <textarea class="t" id="chIn" rows="2" placeholder="ざっくばらんに答えてOK" aria-label="答え" ${busy ? 'disabled' : ''}>${esc(chatUi.draft || '')}</textarea>
@@ -1446,7 +1658,7 @@ function renderChat(ctx) {
       ${ctx.kind === 'es' ? `<div class="chat-ctx">設問：${esc(ctx.q.title)}</div>` : ''}
       ${ctx.kind === 'bank' ? `<details class="hintbox"><summary>${esc(ctx.item.no)} ・ ${esc(ctx.item.phase)} ・ ポイントと回答例を見る</summary>
         <p><b>型</b>：${esc(ctx.item.frame)}</p><p><b>ポイント</b>：${esc(ctx.item.point)}</p><p><b>回答例</b>：${esc(ctx.item.example)}</p></details>` : ''}
-      ${goalHtml(st)}</div>
+      ${goalHtml(st, plan)}</div>
     <div class="msgs" id="msgs">${chat.map((m, i) => msgHtml(m, i, ctx)).join('')}
       ${busy ? `<div class="msg ai typing"><span class="spin"></span>${esc(busy)}</div>` : ''}</div>
     <div class="composer">${composer}</div></div>`;
@@ -1455,9 +1667,17 @@ function renderChat(ctx) {
   $('#chBack').onclick = leave;
   const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   on('#chSend', () => sendAnswer(ctx));
-  on('#chNext', () => { if (ctx.next) return ctx.next(); addTopic(ctx); renderChat(ctx); });
-  on('#chSum', () => summarize(ctx));
+  on('#chNext', () => {
+    if (inPlan) { if (answered) plan.points[st.m.planIdx].answered = true; return advancePlan(ctx, st.m); }
+    if (ctx.next) return ctx.next();
+    addTopic(ctx); renderChat(ctx);
+  });
+  on('#chSum', () => {
+    if (inPlan) { if (answered) plan.points[st.m.planIdx].answered = true; return summarizePlan(ctx); }
+    summarize(ctx);
+  });
   on('#chEnd', leave);
+  on('#chAgain', async () => { const ok = await ensurePlan(ctx, plan.asked || plan.points.map(p => p.title)); if (!ok) toast('論点を作れませんでした。時間をおいてお試しください'); renderChat(ctx); });
   on('#chMore', () => { st.m.done = false; st.m.max = st.turns + 3; ctx.save(); renderChat(ctx); });
   const inp = $('#chIn');
   if (inp) {
@@ -1472,8 +1692,9 @@ async function sendAnswer(ctx) {
   if (!text || chatUi.busy) return;
   chatUi.draft = '';
   pushMsg(ctx, { role: 'me', text });
-  const st = topicState(ctx.thread.chat), topic = st.m;
+  const st = topicState(ctx.thread.chat), topic = st.m, plan = planOf(ctx);
   const left = st.max - st.turns;
+  if (plan && topic.planIdx != null && !plan.finished) return sendPlanAnswer(ctx, st, plan, left);
   let next = null, done = left <= 0;
   if (caps.sample && !chatUi.aiOff) {
     chatUi.busy = '考えています…'; renderChat(ctx);
@@ -1503,6 +1724,26 @@ async function sendAnswer(ctx) {
   }
   if (chatCtx() && route.view === 'chat') renderChat(ctx);
 }
+// 論点の中での受け答え：納得できる答えが出るか、回数の上限まで
+async function sendPlanAnswer(ctx, st, plan, left) {
+  const topic = st.m, point = plan.points[topic.planIdx];
+  point.answered = true;
+  let next = null;
+  if (caps.sample && !chatUi.aiOff) {
+    chatUi.busy = '考えています…'; renderChat(ctx);
+    try { next = await aiPress(ctx, point, Math.max(0, left)); }
+    catch (e) { if (e && (e.code === 'not_granted' || e.code === 'rate_limited')) { chatUi.aiOff = true; toast(aiErrorMessage(e)); } }
+    chatUi.busy = '';
+  }
+  const done = left <= 0 || !next || next.done;
+  if (next && (next.reply || (!done && next.q))) {
+    if (!done && next.q) ctx.thread.asked = [...(ctx.thread.asked || []), next.q];
+    pushMsg(ctx, { role: 'ai', reply: next.reply || '', q: done ? '' : next.q, intent: done ? '' : next.intent });
+  }
+  if (done) return advancePlan(ctx, topic);
+  ctx.save();
+  if (chatCtx() && route.view === 'chat') renderChat(ctx);
+}
 // AIが使えないときは、アプリ内の深掘りで続ける
 function ruleFollowUp(ctx, text) {
   const asked = new Set(ctx.thread.asked || []);
@@ -1518,10 +1759,7 @@ async function summarize(ctx) {
   try {
     const s = await aiSummarize(ctx, chat[t].q);
     pushMsg(ctx, s);
-    const from = ctx.kind === 'es' ? `${ctx.company.name}・${clip(ctx.q.title, 20)}` : ctx.kind === 'bank' ? `面接質問・${ctx.item.cat}` : '自己分析';
-    const have = new Set(state.profile.insights.map(x => x.text));
-    s.insights.filter(x => !have.has(x.text)).forEach(x => state.profile.insights.push({ ...x, from, at: Date.now() }));
-    saveProfile();
+    addInsights(ctx, s.insights);
   } catch (e) { toast(aiErrorMessage(e).replace('AIの深掘り', 'まとめ')); }
   chat[t].done = true; ctx.save();
   chatUi.busy = '';
