@@ -91,6 +91,8 @@
   .mp{flex:none;display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;width:64px;text-align:center;line-height:1.3;border:1px solid var(--line);border-radius:14px;background:var(--card);
     text-decoration:none;font-size:.78rem;font-weight:700;color:var(--accent);white-space:nowrap;}
   .mp:hover{border-color:var(--accent);}
+  .mp.del{color:var(--seal);cursor:pointer;font-family:inherit;}
+  .mp.del:hover{border-color:var(--seal);background:var(--seal-bg);}
   .mp:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   a.big{text-decoration:none;color:var(--ink);}
   .subline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-10px 0 18px;font-size:.85rem;color:var(--sub);}
@@ -803,7 +805,7 @@ function chainFor(q, key, nodeIndex) {
 /* ================= 画面 ================= */
 // view: home | profile（自己分析ノート） | company | q（設問） | chat（深掘りの会話）
 let route = { view: 'home', id: null, qid: null };
-let filter = '';
+let filter = '', manage = false;
 const nodeIndexes = new Map();
 const STATUS_GROUPS = [
   ['インターン', ['インターンES作成中', 'インターン選考中', 'インターン参加予定', 'インターン参加済']],
@@ -827,6 +829,12 @@ function normUrl(u) {
 }
 function hostOf(u) { try { return new URL(u).host; } catch (e) { return u; } }
 const curCompany = () => state.companies.find(x => x.id === route.id);
+// 登録した日時（id は追加した時刻から作られている）。同じ名前の企業を見分けるために使う
+function createdAt(c) {
+  const t = parseInt(String(c.id).slice(0, -6), 36);
+  if (!t || t < 1.6e12 || t > 4e12) return '';
+  const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 function go(r) { flushAll(); route = Object.assign({ view: 'home', id: null, qid: null }, r); render(); window.scrollTo(0, 0); }
 
 function render() {
@@ -868,9 +876,10 @@ function homeView() {
     return `<div class="co-row"><button class="row-btn co" type="button" data-id="${esc(c.id)}">
       <div class="grow"><div class="ttl">${esc(c.name)}</div>
         <div class="pills"><span class="pill ${statusClass(c.status)}">${esc(c.status || '')}</span>${deadlinePill(c)}</div>
-        <div class="meta">設問${c.questions.length}${n ? ` ・ まとめた回答 ${n}` : ''}</div></div>
+        <div class="meta">設問${c.questions.length}${manage ? `（回答あり${c.questions.filter(q => (q.answer || '').trim()).length}）` : ''}${n ? ` ・ まとめた回答 ${n}` : ''}${manage && createdAt(c) ? ` ・ 登録 ${createdAt(c)}` : ''}</div></div>
       <span class="chev">›</span></button>
-      ${url ? `<a class="mp" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(c.name)}のマイページを開く"><span>マイ<br>ページ</span><b aria-hidden="true">↗</b></a>` : ''}</div>`;
+      ${manage ? `<button class="mp del" type="button" data-del-co="${esc(c.id)}" aria-label="${esc(c.name)}を削除"><span>🗑</span><b>削除</b></button>`
+        : url ? `<a class="mp" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(c.name)}のマイページを開く"><span>マイ<br>ページ</span><b aria-hidden="true">↗</b></a>` : ''}</div>`;
   }).join('');
   const ni = (state.profile.insights || []).length, nAns = answerCount();
   return `<header class="top"><h1>ES深掘りノート</h1><button class="icon" id="btnSettings" aria-label="設定">⚙︎</button></header>
@@ -881,7 +890,7 @@ function homeView() {
       ${caps.images ? `<button class="big" type="button" id="btnImg">📷 ESの画像から追加<small>スクショや写真を選ぶだけで、企業・設問・回答を読み取ります</small></button>` : ''}
       <button class="big" type="button" id="btnAdd">＋ 企業を追加<small>手で入力する</small></button>
     </div>
-    ${state.companies.length ? `<div class="sec"><span>企業</span></div>` : ''}
+    ${state.companies.length ? `<div class="sec"><span>企業</span><button class="btn small" type="button" id="btnManage">${manage ? '完了' : '整理（削除）'}</button></div>` : ''}
     ${many ? `<input class="search" id="search" placeholder="検索" value="${esc(filter)}" aria-label="企業を検索">` : ''}
     <div class="list">${items || (state.companies.length ? '<div class="empty">見つかりません</div>' : '')}</div>`;
 }
@@ -895,6 +904,8 @@ function bindHome() {
   const s = $('#search');
   if (s) s.oninput = () => { filter = s.value; const pos = s.selectionStart; render(); const n = $('#search'); n.focus(); n.setSelectionRange(pos, pos); };
   document.querySelectorAll('.co').forEach(el => { el.onclick = () => go({ view: 'company', id: el.dataset.id }); });
+  const bm = $('#btnManage'); if (bm) bm.onclick = () => { manage = !manage; render(); };
+  document.querySelectorAll('[data-del-co]').forEach(b => b.onclick = () => confirmDeleteCompany(state.companies.find(x => x.id === b.dataset.delCo)));
 }
 
 /* ---- まとめた回答（会話の中と、設問・自己分析の画面で共通） ---- */
@@ -1150,7 +1161,8 @@ function companyView(c) {
   }).join('');
   const url = normUrl(c.url);
   return `<header class="top"><button class="icon" id="btnBack" aria-label="一覧に戻る">←</button>
-      <h1>${esc(c.name)}</h1><button class="icon" id="btnEditCo" aria-label="企業情報を編集">✎</button></header>
+      <h1>${esc(c.name)}</h1><button class="icon" id="btnEditCo" aria-label="企業情報を編集">✎</button>
+      <button class="icon" id="btnDelCo" aria-label="この企業を削除">🗑</button></header>
     <div class="subline"><span class="pill ${statusClass(c.status)}">${esc(c.status || '')}</span>${deadlinePill(c)}</div>
     <div class="stack">
       ${url ? `<a class="big" href="${esc(url)}" target="_blank" rel="noopener">🔗 マイページを開く<small>${esc(hostOf(url))}</small></a>`
@@ -1163,6 +1175,7 @@ function companyView(c) {
 function bindCompany(c) {
   $('#btnBack').onclick = () => go({ view: 'home' });
   $('#btnEditCo').onclick = () => openCompanyDialog(c);
+  $('#btnDelCo').onclick = () => confirmDeleteCompany(c);
   const su = $('#btnSetUrl'); if (su) su.onclick = () => { openCompanyDialog(c); setTimeout(() => $('#cUrl').focus(), 50); };
   const bi = $('#btnImg'); if (bi) bi.onclick = () => $('#fileImg').click();
   $('#btnAddQ').onclick = () => {
@@ -1269,12 +1282,15 @@ $('#formCompany').addEventListener('submit', e => {
   }
   saveCompany(c, true); $('#dlgCompany').close(); render();
 });
-$('#btnDeleteCompany').onclick = async () => {
-  const c = editing; if (!c) return;
-  $('#dlgCompany').close();
-  if (!await askConfirm(`「${c.name}」とすべての設問・メモを削除しますか？`, '削除')) return;
-  await removeCompany(c); route = { view: 'home', id: null }; render(); toast('削除しました');
-};
+$('#btnDeleteCompany').onclick = () => { const c = editing; if (!c) return; $('#dlgCompany').close(); confirmDeleteCompany(c); };
+async function confirmDeleteCompany(c) {
+  if (!c) return;
+  const n = c.questions.filter(q => (q.answer || '').trim()).length;
+  if (!await askConfirm(`「${c.name}」を削除しますか？設問${c.questions.length}件（回答あり${n}件）と、深掘りの会話・まとめた回答も消えます。元に戻せません。`, '削除する')) return;
+  await removeCompany(c);
+  if (!state.companies.length) manage = false;
+  route = { view: 'home', id: null, qid: null }; render(); toast(`「${c.name}」を削除しました`);
+}
 
 /* ================= 設定・バックアップ ================= */
 function openSettings() {
