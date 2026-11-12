@@ -1,4 +1,4 @@
-const CACHE = 'es-deepdive-v7';
+const CACHE = 'es-deepdive-v8';
 const FILES = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'];
 
 self.addEventListener('install', e => {
