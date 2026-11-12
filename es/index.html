@@ -401,21 +401,40 @@ async function initStore() {
   const id = user ? await user.id().catch(() => null) : null;
   if (db && id) {
     caps.db = db; caps.col = db.collection('data/users/' + id);
-    const slow = setTimeout(() => { if (!ready) { $('#app').innerHTML = `<div class="empty">保存データに接続できません。<br>通信状況を確認して、ページを開き直してください。</div>`; } }, 10000);
-    try {
-      const snap = await caps.col.get();
-      const docs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-      const special = d => d.id.startsWith('_') || d.id.startsWith('qb-');
-      const qb = docs.find(d => d.id === '_qbank');
-      state = { companies: docs.filter(d => !special(d)).map(normalize), profile: normProfile(docs.find(d => d.id === '_profile')),
-        qbank: qb && Array.isArray(qb.items) ? qb : null, qa: {} };
-      docs.filter(d => d.id.startsWith('qb-')).forEach(d => { state.qa[d.id.slice(3)] = d; qaOf(d.id.slice(3)); });
-    } catch (e) { toast('データを読み込めませんでした'); }
-    clearTimeout(slow);
+    if (!await loadFromDb()) return showLoadError();
   } else {
     state = loadLocal(); state.companies.forEach(normalize); state.profile = normProfile(state.profile); normLocalExtras();
   }
   ready = true; render();
+}
+// 保存場所から全件を読む。読み込んだデータは書き換え禁止（frozen）で渡されるので、必ず複製してから使う
+async function loadFromDb() {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const snap = await caps.col.get();
+      const docs = snap.docs.map(d => ({ ...JSON.parse(JSON.stringify(d.data() || {})), id: d.id }));
+      const special = d => d.id.startsWith('_') || d.id.startsWith('qb-');
+      const qb = docs.find(d => d.id === '_qbank');
+      const next = { companies: docs.filter(d => !special(d)).map(normalize), profile: normProfile(docs.find(d => d.id === '_profile')),
+        qbank: qb && Array.isArray(qb.items) ? qb : null, qa: {} };
+      state = next;
+      docs.filter(d => d.id.startsWith('qb-')).forEach(d => { state.qa[d.id.slice(3)] = d; qaOf(d.id.slice(3)); });
+      return true;
+    } catch (e) {
+      console.error('load failed', e);
+      if (attempt === 0) await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
+    }
+  }
+  return false;
+}
+// 読み込めなかったときは、空の状態で使わせない（上書きで消してしまわないように）
+function showLoadError() {
+  $('#app').innerHTML = `<div class="empty">保存したデータを読み込めませんでした。<br>データは消えていません。通信状況を確認して、もう一度お試しください。<br><br>
+    <button class="btn primary" type="button" id="btnRetry">もう一度読み込む</button></div>`;
+  $('#btnRetry').onclick = async () => {
+    $('#app').innerHTML = '<div class="empty">読み込み中…</div>';
+    if (await loadFromDb()) { ready = true; render(); } else showLoadError();
+  };
 }
 function registerSW() { if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {}); }
 
