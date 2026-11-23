@@ -134,41 +134,34 @@ function initBoard() {
 }
 
 // --- AI ---
-function evaluate(board, color) {
+// Benchmarked by self-play: a 1-ply search with a good evaluation beats deeper search here,
+// because mobility swings wildly with 80 directions.
+const CORNERS = [...Array(SIZE).keys()].filter(i => coord(i).every(v => v === 0 || v === N - 1));
+const NEAR_CORNER = CORNERS.map(c => RAYS[c].map(r => r[0]));
+function apply(board, i, flips, color) { const nb = board.slice(); nb[i] = color; for (const f of flips) nb[f] = color; return nb; }
+function positional(board, color) {
   let s = 0;
   for (let i = 0; i < SIZE; i++) if (board[i]) s += (board[i] === color ? 1 : -1) * WEIGHT[i];
-  s += 2 * (validMoves(board, color).length - validMoves(board, 3 - color).length);
   return s;
 }
-function apply(board, i, flips, color) { const nb = board.slice(); nb[i] = color; for (const f of flips) nb[f] = color; return nb; }
-function search(board, color, depth, alpha, beta) {
-  const moves = validMoves(board, color);
-  if (depth === 0) return evaluate(board, color);
-  if (!moves.length) {
-    if (!validMoves(board, 3 - color).length) { const [b, w] = count(board); const d = color === B ? b - w : w - b; return d * 1000; }
-    return -search(board, 3 - color, depth - 1, -beta, -alpha);
+function strong(board, color) {
+  let s = positional(board, color);
+  for (let k = 0; k < CORNERS.length; k++) {
+    if (board[CORNERS[k]]) continue;
+    for (const j of NEAR_CORNER[k]) if (board[j]) s -= (board[j] === color ? 1 : -1) * 6;
   }
-  moves.sort((a, b) => WEIGHT[b[0]] - WEIGHT[a[0]]);
-  for (const [i, f] of moves) {
-    const v = -search(apply(board, i, f, color), 3 - color, depth - 1, -beta, -alpha);
-    if (v > alpha) alpha = v;
-    if (alpha >= beta) break;
-  }
-  return alpha;
+  return s + 4 * (validMoves(board, color).length - validMoves(board, 3 - color).length);
 }
 function cpuMove(board, color, level) {
   const moves = validMoves(board, color);
-  if (level === 1) {
-    // greedy on flips with noise
-    let best = null, bv = -Infinity;
-    for (const m of moves) { const v = m[1].length + Math.random() * 3; if (v > bv) { bv = v; best = m; } }
-    return best;
-  }
-  const depth = level === 2 ? 1 : 3;
   let best = moves[0], bv = -Infinity;
-  moves.sort((a, b) => WEIGHT[b[0]] - WEIGHT[a[0]]);
   for (const m of moves) {
-    const v = -search(apply(board, m[0], m[1], color), 3 - color, depth - 1, -Infinity, -bv) + Math.random() * 0.5;
+    let v;
+    if (level === 1) v = m[1].length + Math.random() * 3;
+    else {
+      const nb = apply(board, m[0], m[1], color);
+      v = (level === 2 ? positional(nb, color) : strong(nb, color)) + Math.random() * 0.5;
+    }
     if (v > bv) { bv = v; best = m; }
   }
   return best;
