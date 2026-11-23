@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>四次元オセロ</title>
+<style>
+:root{
+  --bg:#f4f1ea; --fg:#222; --muted:#666; --panel:#fff;
+  --board:#2e7d4f; --board-alt:#286f46; --line:#1d5235;
+  --hint:rgba(255,255,255,.35); --flip:#ffd54a; --last:#ff5252;
+  --black:#111; --white:#fafafa;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#16181b; --fg:#e8e8e8; --muted:#9aa; --panel:#22262b; --board:#25633f; --board-alt:#205838; --line:#12351f; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:0 0 4px}
+.sub{color:var(--muted);font-size:.85rem;margin:0 0 12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.score{display:flex;gap:12px;align-items:center;background:var(--panel);padding:6px 12px;border-radius:10px;font-weight:600}
+.score .s{display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:6px}
+.score .s.turn{outline:2px solid var(--last)}
+.dot{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid #888}
+.dot.b{background:var(--black)} .dot.w{background:var(--white)}
+button,select{font:inherit;padding:6px 12px;border-radius:8px;border:1px solid #9995;background:var(--panel);color:var(--fg);cursor:pointer}
+#msg{min-height:1.4em;font-weight:600;margin:4px 0 10px}
+.hyper{display:grid;grid-template-columns:auto repeat(4,1fr);gap:6px;align-items:center}
+.lab{font-size:.75rem;color:var(--muted);text-align:center}
+.lab.row{writing-mode:vertical-rl;transform:rotate(180deg)}
+.board{display:grid;grid-template-columns:repeat(4,1fr);background:var(--line);gap:1px;border:2px solid var(--line);border-radius:4px;aspect-ratio:1}
+.board.zw{outline:2px dashed transparent}
+.cell{background:var(--board);position:relative;cursor:default;aspect-ratio:1}
+.cell.alt{background:var(--board-alt)}
+.cell.valid{cursor:pointer}
+.cell.valid::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--hint)}
+.cell.preview{box-shadow:inset 0 0 0 3px var(--flip)}
+.cell.src{box-shadow:inset 0 0 0 3px #fff}
+.stone{position:absolute;inset:12%;border-radius:50%;transition:background .25s,transform .25s}
+.stone.b{background:radial-gradient(circle at 35% 30%,#555,var(--black) 60%)}
+.stone.w{background:radial-gradient(circle at 35% 30%,#fff,#ddd 70%)}
+.stone.flipped{animation:flip .35s}
+@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+.cell.last .stone::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--last)}
+details{margin-top:16px;background:var(--panel);padding:10px 14px;border-radius:10px;font-size:.9rem;line-height:1.6}
+summary{cursor:pointer;font-weight:600}
+@media (max-width:560px){ main{padding:16px 10px} .hyper{gap:3px} .board{border-width:1px} }
+</style>
+</head>
+<body>
+<main>
+  <h1>四次元オセロ</h1>
+  <p class="sub">4×4×4×4 = 256マスの超立方体盤。石は 80 方向に挟めます。</p>
+  <div class="bar">
+    <div class="score">
+      <span class="s" id="sb"><span class="dot b"></span>黒 <span id="nb">8</span></span>
+      <span class="s" id="sw"><span class="dot w"></span>白 <span id="nw">8</span></span>
+    </div>
+    <select id="mode">
+      <option value="cpu-w">対CPU（あなたが黒）</option>
+      <option value="cpu-b">対CPU（あなたが白）</option>
+      <option value="pvp">2人対戦</option>
+    </select>
+    <select id="level">
+      <option value="1">CPU: やさしい</option>
+      <option value="2" selected>CPU: ふつう</option>
+      <option value="3">CPU: つよい</option>
+    </select>
+    <button id="undo">戻す</button>
+    <button id="reset">新しいゲーム</button>
+  </div>
+  <div id="msg"></div>
+  <div class="hyper" id="hyper"></div>
+  <details>
+    <summary>遊び方</summary>
+    <p>盤面は座標 (x, y, z, w) の4次元。小さな4×4盤の中の位置が x（横）と y（縦）、どの小盤かが z（横に並ぶ列）と w（縦に並ぶ行）です。</p>
+    <p>通常のオセロと同じく、置いた石と自分の石で相手の石を一直線に挟むと裏返ります。4次元では各座標を −1 / 0 / +1 ずつ動かす組み合わせで 3⁴−1 = <b>80方向</b>の直線があります。たとえば「同じ x,y の位置で隣の小盤へ」や「小盤を斜めにまたいで x も y も1つずつずれる」といった線も有効です。</p>
+    <p>置ける場所には薄い点が表示されます。マウスを乗せる（スマホでは1回タップ）と、裏返る石が黄色枠で示されます。もう一度タップで着手。置ける場所がなければパス、両者置けなくなったら終了です。</p>
+  </details>
+</main>
+<script>
+const N = 4, SIZE = N ** 4, EMPTY = 0, B = 1, W = 2;
+const idx = (x, y, z, w) => x + N * (y + N * (z + N * w));
+const coord = i => [i % N, (i / N | 0) % N, (i / N / N | 0) % N, (i / N / N / N | 0)];
+
+// 80 directions
+const DIRS = [];
+for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++)
+  for (let c = -1; c <= 1; c++) for (let d = -1; d <= 1; d++)
+    if (a || b || c || d) DIRS.push([a, b, c, d]);
+
+// Precompute rays for each cell and direction
+const RAYS = Array.from({ length: SIZE }, (_, i) => {
+  const p = coord(i), rays = [];
+  for (const d of DIRS) {
+    const ray = [];
+    let q = p.map((v, k) => v + d[k]);
+    while (q.every(v => v >= 0 && v < N)) { ray.push(idx(...q)); q = q.map((v, k) => v + d[k]); }
+    if (ray.length >= 2) rays.push(ray);
+  }
+  return rays;
+});
+
+// Positional weight: count of edge coordinates (0 or N-1). Corners of the hypercube = 4.
+const WEIGHT = Array.from({ length: SIZE }, (_, i) => {
+  const e = coord(i).filter(v => v === 0 || v === N - 1).length;
+  return [1, 2, 4, 8, 30][e];
+});
+
+function flipsFor(board, i, color) {
+  if (board[i] !== EMPTY) return [];
+  const opp = 3 - color, out = [];
+  for (const ray of RAYS[i]) {
+    let k = 0;
+    while (k < ray.length && board[ray[k]] === opp) k++;
+    if (k > 0 && k < ray.length && board[ray[k]] === color) for (let j = 0; j < k; j++) out.push(ray[j]);
+  }
+  return out;
+}
+function validMoves(board, color) {
+  const m = [];
+  for (let i = 0; i < SIZE; i++) { const f = flipsFor(board, i, color); if (f.length) m.push([i, f]); }
+  return m;
+}
+function count(board) { let b = 0, w = 0; for (const v of board) { if (v === B) b++; else if (v === W) w++; } return [b, w]; }
+
+function initBoard() {
+  const b = new Array(SIZE).fill(EMPTY);
+  for (let x = 1; x <= 2; x++) for (let y = 1; y <= 2; y++) for (let z = 1; z <= 2; z++) for (let w = 1; w <= 2; w++)
+    b[idx(x, y, z, w)] = (x + y + z + w) % 2 === 0 ? W : B;
+  return b;
+}
+
+// --- AI ---
+// Benchmarked by self-play: a 1-ply search with a good evaluation beats deeper search here,
+// because mobility swings wildly with 80 directions.
+const CORNERS = [...Array(SIZE).keys()].filter(i => coord(i).every(v => v === 0 || v === N - 1));
+const NEAR_CORNER = CORNERS.map(c => RAYS[c].map(r => r[0]));
+function apply(board, i, flips, color) { const nb = board.slice(); nb[i] = color; for (const f of flips) nb[f] = color; return nb; }
+function positional(board, color) {
+  let s = 0;
+  for (let i = 0; i < SIZE; i++) if (board[i]) s += (board[i] === color ? 1 : -1) * WEIGHT[i];
+  return s;
+}
+function strong(board, color) {
+  let s = positional(board, color);
+  for (let k = 0; k < CORNERS.length; k++) {
+    if (board[CORNERS[k]]) continue;
+    for (const j of NEAR_CORNER[k]) if (board[j]) s -= (board[j] === color ? 1 : -1) * 6;
+  }
+  return s + 4 * (validMoves(board, color).length - validMoves(board, 3 - color).length);
+}
+function cpuMove(board, color, level) {
+  const moves = validMoves(board, color);
+  let best = moves[0], bv = -Infinity;
+  for (const m of moves) {
+    let v;
+    if (level === 1) v = m[1].length + Math.random() * 3;
+    else {
+      const nb = apply(board, m[0], m[1], color);
+      v = (level === 2 ? positional(nb, color) : strong(nb, color)) + Math.random() * 0.5;
+    }
+    if (v > bv) { bv = v; best = m; }
+  }
+  return best;
+}
+
+// --- UI ---
+const hyper = document.getElementById('hyper');
+const cells = new Array(SIZE);
+(function build() {
+  hyper.appendChild(document.createElement('div'));
+  for (let z = 0; z < N; z++) { const l = document.createElement('div'); l.className = 'lab'; l.textContent = 'z=' + z; hyper.appendChild(l); }
+  for (let w = 0; w < N; w++) {
+    const l = document.createElement('div'); l.className = 'lab row'; l.textContent = 'w=' + w; hyper.appendChild(l);
+    for (let z = 0; z < N; z++) {
+      const bd = document.createElement('div'); bd.className = 'board';
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const i = idx(x, y, z, w), c = document.createElement('div');
+        c.className = 'cell' + ((x + y) % 2 ? ' alt' : ''); c.title = `(${x}, ${y}, ${z}, ${w})`;
+        c.addEventListener('mouseenter', () => showPreview(i));
+        c.addEventListener('mouseleave', clearPreview);
+        c.addEventListener('click', () => onClick(i));
+        cells[i] = c; bd.appendChild(c);
+      }
+      hyper.appendChild(bd);
+    }
+  }
+})();
+
+let state, history, busy = false, previewed = -1;
+const $ = id => document.getElementById(id);
+const modeSel = $('mode'), levelSel = $('level');
+const isCpu = color => (modeSel.value === 'cpu-w' && color === W) || (modeSel.value === 'cpu-b' && color === B);
+
+function newGame() {
+  state = { board: initBoard(), turn: B, last: -1, flipped: [], over: false, passMsg: '' };
+  history = [];
+  render(); maybeCpu();
+}
+function render() {
+  const { board, turn } = state;
+  const moves = state.over || isCpu(turn) ? [] : validMoves(board, turn);
+  const vset = new Set(moves.map(m => m[0])), fset = new Set(state.flipped);
+  for (let i = 0; i < SIZE; i++) {
+    const c = cells[i];
+    c.classList.toggle('valid', vset.has(i));
+    c.classList.toggle('last', i === state.last);
+    c.classList.remove('preview', 'src');
+    const v = board[i];
+    let s = c.firstChild;
+    if (v === EMPTY) { if (s) s.remove(); continue; }
+    if (!s) { s = document.createElement('div'); c.appendChild(s); }
+    s.className = 'stone ' + (v === B ? 'b' : 'w') + (fset.has(i) ? ' flipped' : '');
+  }
+  const [nb, nw] = count(board);
+  $('nb').textContent = nb; $('nw').textContent = nw;
+  $('sb').classList.toggle('turn', !state.over && turn === B);
+  $('sw').classList.toggle('turn', !state.over && turn === W);
+  let m;
+  if (state.over) m = nb === nw ? `引き分け！（${nb} − ${nw}）` : `${nb > nw ? '黒' : '白'}の勝ち！（${nb} − ${nw}）`;
+  else m = (state.passMsg ? state.passMsg + ' ' : '') + (turn === B ? '黒' : '白') + 'の番' + (isCpu(turn) ? '（CPU思考中…）' : '');
+  $('msg').textContent = m;
+  $('undo').disabled = !history.length || busy;
+  previewed = -1;
+}
+function showPreview(i) {
+  clearPreview();
+  if (busy || state.over || isCpu(state.turn)) return;
+  const f = flipsFor(state.board, i, state.turn);
+  if (!f.length) return;
+  cells[i].classList.add('src');
+  for (const j of f) cells[j].classList.add('preview');
+  previewed = i;
+}
+function clearPreview() { document.querySelectorAll('.preview,.src').forEach(c => c.classList.remove('preview', 'src')); previewed = -1; }
+
+const touch = matchMedia('(hover: none)').matches;
+function onClick(i) {
+  if (busy || state.over || isCpu(state.turn)) return;
+  const f = flipsFor(state.board, i, state.turn);
+  if (!f.length) return;
+  if (touch && previewed !== i) { showPreview(i); return; }
+  history.push(JSON.parse(JSON.stringify(state)));
+  play(i, f);
+}
+function play(i, f) {
+  state.board = apply(state.board, i, f, state.turn);
+  state.last = i; state.flipped = f; state.passMsg = '';
+  advance();
+}
+function advance() {
+  const next = 3 - state.turn;
+  if (validMoves(state.board, next).length) state.turn = next;
+  else if (validMoves(state.board, state.turn).length) state.passMsg = `${next === B ? '黒' : '白'}はパス。`;
+  else state.over = true;
+  render(); maybeCpu();
+}
+function maybeCpu() {
+  if (state.over || !isCpu(state.turn)) return;
+  busy = true; render();
+  setTimeout(() => {
+    const m = cpuMove(state.board, state.turn, +levelSel.value);
+    busy = false;
+    play(m[0], m[1]);
+  }, 350);
+}
+$('reset').onclick = () => { if (!busy) newGame(); };
+modeSel.onchange = () => { if (!busy) newGame(); };
+$('undo').onclick = () => {
+  if (busy || !history.length) return;
+  state = history.pop();
+  render();
+};
+newGame();
+</script>
+</body>
+</html>
